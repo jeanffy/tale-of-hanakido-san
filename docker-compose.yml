@@ -1,0 +1,10 @@
+name: tale-of-hanakido-san
+services:
+  front:
+    image: php:8-apache
+    container_name: tale-of-hanakido-san
+    command: /bin/bash -c 'a2enmod rewrite; apache2-foreground'
+    ports:
+      - 8080:80
+    volumes:
+      - ./dist:/var/www/html

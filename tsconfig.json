@@ -1,11 +1,46 @@
 {
-  "files": [],
-  "references": [
-    {
-      "path": "./tsconfig.node.json"
-    },
-    {
-      "path": "./tsconfig.app.json"
-    }
+  "compileOnSave": true,
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "incremental": false,
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": false,
+    "outDir": "dist",
+    "preserveConstEnums": true,
+    "removeComments": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true,
+    "target": "ES2022",
+    "typeRoots": ["./node_modules/@types", "./src/types", "./test/types", "./"],
+    "types": []
+  },
+  "include": [
+    "src/**/*.mts",
+    "rollup.config.ts",
+    "src/interfaces/i-draw-context.ts",
+    "src/interfaces/i-environment.ts",
+    "src/interfaces/i-factory.ts",
+    "src/interfaces/i-game.ts",
+    "src/interfaces/i-hero.ts",
+    "src/interfaces/i-sprite-manager.ts",
+    "src/interfaces/i-world.ts",
+    "src/game/position.ts",
+    "src/game/environment.ts",
+    "src/game/factory.ts",
+    "src/game/game-sprites.ts",
+    "src/game/game.ts",
+    "src/game/hero.ts",
+    "src/game/move.ts",
+    "src/index.ts",
+    "src/game/sprite-manager.ts",
+    "src/game/sprite.ts",
+    "src/game/utils.ts",
+    "src/game/world.ts"
   ]
 }

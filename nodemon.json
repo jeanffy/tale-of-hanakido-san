@@ -1,0 +1,8 @@
+{
+  "exec": "npm run build && :",
+  "ext": "*",
+  "verbose": true,
+  "watch": [
+    "src"
+  ]
+}

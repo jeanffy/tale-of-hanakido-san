@@ -7,9 +7,14 @@
     {
       "name": "Debug",
       "request": "launch",
-      "skipFiles": ["${workspaceFolder}/**/node_modules/**/*.js", "<node_internals>/**/*"],
+      "skipFiles": [
+        "${workspaceFolder}/**/node_modules/**/*.js",
+        "<node_internals>/**/*"
+      ],
+      "smartStep": true,
+      "sourceMaps": true,
       "type": "chrome",
-      "url": "http://localhost:5173"
+      "url": "http://localhost:8080"
     }
   ]
 }
