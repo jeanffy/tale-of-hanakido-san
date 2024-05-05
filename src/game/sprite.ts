@@ -1,5 +1,12 @@
+import { GeomRect } from './geom-rect.js';
+
 export enum SpriteId {
-  Grass = 'grass',
+  Debug = 'debug',
+
+  Grass0 = 'grass0',
+  Grass1 = 'grass1',
+  Plant = 'plant',
+  Bush = 'bush',
 
   HeroMoveUp0 = 'hero-move-up-0',
   HeroMoveUp1 = 'hero-move-up-1',
@@ -24,5 +31,10 @@ export enum SpriteId {
 
 export interface Sprite {
   id: SpriteId;
-  element: HTMLImageElement;
+  img: HTMLImageElement;
+  hitBox: GeomRect;
+  layers?: {
+    background: GeomRect;
+    overlay: GeomRect;
+  };
 }

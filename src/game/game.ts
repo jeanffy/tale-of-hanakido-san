@@ -1,23 +1,20 @@
-//import { type IDrawContext } from './interfaces/i-draw-context.mjs';
-//import { type IEnvironment } from './interfaces/i-environment.mjs';
-import { IDrawContext } from '../interfaces/i-draw-context.js';
-import type { IFactory } from '../interfaces/i-factory.js';
-import type { IGame, GameControlState } from '../interfaces/i-game.js';
-import type { IHero } from '../interfaces/i-hero.js';
-//import { type ISpriteManager } from './interfaces/i-sprite-manager.mjs';
-import type { IWorld } from '../interfaces/i-world.js';
+import { DrawContext } from './draw-context.js';
+import { Factory } from './factory.js';
+import { Hero } from './hero.js';
 import { FrameRateIterator } from './utils.js';
+import { World } from './world.js';
+import { ControlState } from './control-state.js';
 
 const TARGET_FPS = 15;
 
-export class Game implements IGame {
-  private hero: IHero;
-  private world: IWorld;
-  private controlState: GameControlState;
+export class Game {
+  private hero: Hero;
+  private world: World;
+  private controlState: ControlState;
   private frameRateIterator: FrameRateIterator;
 
   public constructor(
-    private factory: IFactory // private environment: IEnvironment, // private spriteManager: ISpriteManager, // private drawContext: IDrawContext,
+    private factory: Factory, // private environment: IEnvironment, // private spriteManager: ISpriteManager, // private drawContext: IDrawContext,
   ) {
     this.hero = this.factory.getHero();
     this.world = this.factory.getWorld();
@@ -30,7 +27,7 @@ export class Game implements IGame {
     this.frameRateIterator = new FrameRateIterator({ targetFps: TARGET_FPS });
   }
 
-  public nextFrame(drawContext: IDrawContext, dt: number): void {
+  public nextFrame(drawContext: DrawContext, dt: number): void {
     this.processInputs(dt);
     this.update(dt);
 
@@ -38,14 +35,14 @@ export class Game implements IGame {
     //   Math.atan(500);
     // }
 
-    this.frameRateIterator.shouldRender(dt).then((shouldRender) => {
+    this.frameRateIterator.shouldRender(dt).then(shouldRender => {
       if (shouldRender) {
         this.render(drawContext);
       }
     });
   }
 
-  public updateControlState(state: Partial<GameControlState>): void {
+  public updateControlState(state: Partial<ControlState>): void {
     this.controlState.up = state.up ?? this.controlState.up;
     this.controlState.down = state.down ?? this.controlState.down;
     this.controlState.left = state.left ?? this.controlState.left;
@@ -61,16 +58,14 @@ export class Game implements IGame {
     this.hero.update(dt);
   }
 
-  private render(drawContext: IDrawContext): void {
+  private render(drawContext: DrawContext): void {
     try {
       this.world.render(drawContext);
       this.hero.render(drawContext);
+      this.world.renderOverlays(drawContext);
 
       const fpsString = `FPS: ${this.frameRateIterator.fps}`;
-      const c = drawContext as CanvasRenderingContext2D;
-      c.textAlign = 'left';
-      c.textBaseline = 'top';
-      c.fillText(fpsString, 5, 5);
+      drawContext.writeText(fpsString, 5, 5, { horizontalAlign: 'left', verticalAlign: 'top' });
     } catch (error) {
       console.error(error);
     }

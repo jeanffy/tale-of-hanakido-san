@@ -1,14 +1,14 @@
-import { Position } from './position.js';
-import { type IDrawContext } from '../interfaces/i-draw-context.js';
-import { type IEnvironment } from '../interfaces/i-environment.js';
-import type { IHero } from '../interfaces/i-hero.js';
-import { type ISpriteManager } from '../interfaces/i-sprite-manager.js';
+import { GeomPosition } from './geom-position.js';
 import { SpriteId, type Sprite } from './sprite.js';
 import { AnimationIterator } from './utils.js';
-import { Vector } from './vector.js';
-import { GameControlState } from '../interfaces/i-game.js';
+import { GeomVector } from './geom-vector.js';
+import { ControlState } from './control-state.js';
+import { SpriteManager } from './sprite-manager.js';
+import { DrawContext } from './draw-context.js';
+import { World } from './world.js';
+import { GeomRect } from './geom-rect.js';
 
-export class Hero implements IHero {
+export class Hero {
   private runningUpSprites: Sprite[] = [];
   private runningDownSprites: Sprite[] = [];
   private runningLeftSprites: Sprite[] = [];
@@ -18,15 +18,12 @@ export class Hero implements IHero {
     numberOfSprites: 4,
   });
 
-  private position = new Position(0, 0);
-  private movingDirection = new Vector(0, 0);
+  private position: GeomPosition;
+  private movingDirection: GeomVector;
   private isMoving = false;
   private speed = 0.15;
 
-  public constructor(
-    private environment: IEnvironment,
-    private spriteManager: ISpriteManager
-  ) {
+  public constructor(private spriteManager: SpriteManager, private world: World) {
     this.runningUpSprites = [
       this.spriteManager.getSprite(SpriteId.HeroMoveUp0),
       this.spriteManager.getSprite(SpriteId.HeroMoveUp1),
@@ -51,9 +48,11 @@ export class Hero implements IHero {
       this.spriteManager.getSprite(SpriteId.HeroMoveRight2),
       this.spriteManager.getSprite(SpriteId.HeroMoveRight3),
     ];
+    this.position = new GeomPosition(0, 0);
+    this.movingDirection = new GeomVector(0, 0);
   }
 
-  public processInputs(controlState: GameControlState): void {
+  public processInputs(controlState: ControlState): void {
     this.isMoving = false;
     this.movingDirection.x = 0;
     this.movingDirection.y = 0;
@@ -80,12 +79,38 @@ export class Hero implements IHero {
 
   public update(dt: number): void {
     if (this.isMoving) {
+      const sprite = this.selectSprite();
       const direction = this.movingDirection.scale(this.speed * dt);
-      this.position = this.position.moveByVector(direction);
+      const nextPosition = this.position.moveByVector(direction);
+      const nextHitBox = new GeomRect(
+        sprite.hitBox.x + nextPosition.x,
+        sprite.hitBox.y + nextPosition.y,
+        sprite.hitBox.w,
+        sprite.hitBox.h,
+      );
+      if (!this.world.anyObjectCollidesWith(nextHitBox)) {
+        this.position = this.position.moveByVector(direction);
+      }
     }
   }
 
-  public render(drawContext: IDrawContext): void {
+  public render(drawContext: DrawContext): void {
+    const sprite = this.selectSprite();
+
+    const w = sprite.img.width;
+    const h = sprite.img.height;
+
+    drawContext.drawImage(sprite.img, this.position.x, this.position.y, w, h);
+    drawContext.strokeRect(
+      sprite.hitBox.x + this.position.x,
+      sprite.hitBox.y + this.position.y,
+      sprite.hitBox.w,
+      sprite.hitBox.h,
+      { color: 'blue' },
+    );
+  }
+
+  private selectSprite(): Sprite {
     let sprite: Sprite | undefined;
 
     if (this.isMoving) {
@@ -107,15 +132,6 @@ export class Hero implements IHero {
       sprite = this.runningDownSprites[0];
     }
 
-    const w = sprite.element.width * this.environment.zoom;
-    const h = sprite.element.height * this.environment.zoom;
-
-    drawContext.drawImage(
-      sprite.element,
-      this.position.x,
-      this.position.y,
-      w,
-      h
-    );
+    return sprite;
   }
 }

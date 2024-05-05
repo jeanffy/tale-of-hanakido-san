@@ -1,34 +1,35 @@
 import { Factory } from './game/factory.js';
-import { gameSprites } from './game/game-sprites.js';
-import { IDrawContext } from './interfaces/i-draw-context.js';
-import { IGame } from './interfaces/i-game.js';
+import { dataSprites } from './game/data-sprites.js';
+import { CanvasDrawContext } from './canvas-draw-context.js';
+import { Game } from './game/game.js';
 
 const SCREEN_WIDTH = 500;
 const SCREEN_HEIGHT = 500;
 
 const factory = new Factory();
-let game: IGame | undefined;
-let drawContext: IDrawContext | undefined;
+let game: Game | undefined;
+let drawContext: CanvasDrawContext | undefined;
 
 async function bootstrap(): Promise<void> {
-  const canvasDiv =
-    (document.getElementById('canvas') as HTMLCanvasElement) ?? undefined;
+  const canvasDiv = (document.getElementById('canvas') as HTMLCanvasElement) ?? undefined;
   if (canvasDiv === undefined) {
     console.error('no canvas div');
     return;
   }
 
-  drawContext = canvasDiv.getContext('2d') ?? undefined;
-  if (drawContext === undefined) {
+  const context = canvasDiv.getContext('2d') ?? undefined;
+  if (context === undefined) {
     console.error('no context in canvas');
     return;
   }
+
+  drawContext = new CanvasDrawContext(context);
 
   canvasDiv.width = SCREEN_WIDTH;
   canvasDiv.height = SCREEN_HEIGHT;
 
   const spriteManager = factory.getSpriteManager();
-  await spriteManager.loadSprites(gameSprites);
+  await spriteManager.loadSprites(dataSprites);
   game = factory.getGame();
 
   window.requestAnimationFrame(gameLoop);
