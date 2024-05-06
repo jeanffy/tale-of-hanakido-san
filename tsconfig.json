@@ -30,17 +30,17 @@
     "src/interfaces/i-hero.ts",
     "src/interfaces/i-sprite-manager.ts",
     "src/interfaces/i-world.ts",
-    "src/game/geom-position.ts",
+    "src/game/geom/geom-point.ts",
     "src/game/environment.ts",
     "src/game/factory.ts",
-    "src/game/data-sprites.ts",
+    "src/game/data/data-sprites.ts",
     "src/game/game.ts",
-    "src/game/hero.ts",
+    "src/game/world/world-hero.ts",
     "src/game/move.ts",
     "src/index.ts",
     "src/game/sprite-manager.ts",
     "src/game/sprite.ts",
-    "src/game/utils.ts",
-    "src/game/world.ts"
+    "src/game/utils/animation-iterator.ts",
+    "src/game/world/world.ts"
   ]
 }

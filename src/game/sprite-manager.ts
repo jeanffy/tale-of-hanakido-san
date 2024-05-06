@@ -1,22 +1,17 @@
-import { GeomRect } from './geom-rect.js';
-import { Sprite, SpriteId } from './sprite.js';
-
-export interface SpriteData {
-  id: SpriteId;
-  url: string;
-  hitBox?: number[];
-  layers?: { background: number[]; overlay: number[] };
-}
+import { SpriteId } from './data/data-sprite.js';
+import { SpriteData } from './data/data-sprites.js';
+import { GeomRect } from './geom/geom-rect.js';
+import { Sprite } from './sprite.js';
 
 export class SpriteManager implements SpriteManager {
   private sprites = new Map<SpriteId, Sprite>();
 
   public async loadSprites(spritesData: SpriteData[]): Promise<void> {
-    const scale = 3;
     for (const spriteData of spritesData) {
       const sprite = await new Promise<Sprite>((resolve, reject) => {
         const img = new Image();
         img.onload = () => {
+          let scale = spriteData.scale ?? 1;
           const spriteImg = this.scaleSprite(img, scale);
           let spriteHitBox: GeomRect;
           if (spriteData.hitBox !== undefined) {
@@ -27,7 +22,7 @@ export class SpriteManager implements SpriteManager {
               (spriteData.hitBox[3] - spriteData.hitBox[1] + 1) * scale,
             );
           } else {
-            spriteHitBox = new GeomRect(0, 0, spriteImg.width * scale, spriteImg.height * scale);
+            spriteHitBox = new GeomRect(0, 0, img.width * scale, img.height * scale);
           }
 
           let layers: Sprite['layers'] | undefined;
@@ -47,12 +42,14 @@ export class SpriteManager implements SpriteManager {
               ),
             };
           }
-          resolve({
-            id: spriteData.id,
-            img: spriteImg,
-            hitBox: spriteHitBox,
-            layers: layers,
-          });
+          resolve(
+            new Sprite({
+              id: spriteData.id,
+              img: spriteImg,
+              hitBox: spriteHitBox,
+              layers: layers,
+            }),
+          );
         };
         img.onerror = () => {
           reject();
@@ -75,6 +72,10 @@ export class SpriteManager implements SpriteManager {
     if (!Number.isInteger(scale)) {
       console.error(`Invalid scale ${scale}`);
       throw Error();
+    }
+
+    if (scale === 1) {
+      return img;
     }
 
     const originalCanvas = document.createElement('canvas');

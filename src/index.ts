@@ -1,7 +1,11 @@
 import { Factory } from './game/factory.js';
-import { dataSprites } from './game/data-sprites.js';
+import { dataSprites } from './game/data/data-sprites.js';
 import { CanvasDrawContext } from './canvas-draw-context.js';
 import { Game } from './game/game.js';
+import { WorldDataItemType, dataWorld } from './game/data/data-world.js';
+import { WorldObject } from './game/world/world-object.js';
+import { WorldHero } from './game/world/world-hero.js';
+import { WorldItemKind } from './game/world/world-item.js';
 
 const SCREEN_WIDTH = 500;
 const SCREEN_HEIGHT = 500;
@@ -30,7 +34,21 @@ async function bootstrap(): Promise<void> {
 
   const spriteManager = factory.getSpriteManager();
   await spriteManager.loadSprites(dataSprites);
-  game = factory.getGame();
+
+  const world = factory.getWorld({
+    landscape: dataWorld.landscape,
+    background: dataWorld.backgroundItems.map(item => new WorldObject(spriteManager, WorldItemKind.Background, item.spriteId!, item.x, item.y)),
+    characters: dataWorld.characters.map(item => {
+      switch (item.type) {
+        case WorldDataItemType.Hero:
+          return new WorldHero(spriteManager, item.x, item.y);
+      }
+      throw new Error('123');
+    }),
+    overlays: [],
+  });
+
+  game = factory.getGame(world);
 
   window.requestAnimationFrame(gameLoop);
 }

@@ -1,12 +1,10 @@
 import { Game } from './game.js';
-import { Hero } from './hero.js';
-import { World } from './world.js';
+import { World, WorldInitParams } from './world/world.js';
 import { SpriteManager } from './sprite-manager.js';
 
 export class Factory {
   private spriteManager: SpriteManager | undefined;
   private game: Game | undefined;
-  private hero: Hero | undefined;
   private world: World | undefined;
 
   public getSpriteManager(): SpriteManager {
@@ -16,23 +14,16 @@ export class Factory {
     return this.spriteManager;
   }
 
-  public getGame(): Game {
+  public getGame(world: World): Game {
     if (this.game === undefined) {
-      this.game = new Game(this); //, this.getEnvironment(), this.getSpriteManager(), this.getDrawContext());
+      this.game = new Game(world);
     }
     return this.game;
   }
 
-  public getHero(): Hero {
-    if (this.hero === undefined) {
-      this.hero = new Hero(this.getSpriteManager(), this.getWorld());
-    }
-    return this.hero;
-  }
-
-  public getWorld(): World {
+  public getWorld(params: WorldInitParams): World {
     if (this.world === undefined) {
-      this.world = new World(this.getSpriteManager());
+      this.world = new World(this.getSpriteManager(), params);
     }
     return this.world;
   }
