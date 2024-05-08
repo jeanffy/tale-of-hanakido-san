@@ -1,4 +1,4 @@
-import { StrokeOptions, WriteTextOptions, type DrawContext } from './game/draw-context.js';
+import { FillOptions, StrokeOptions, WriteTextOptions, type DrawContext } from './game/draw-context.js';
 
 export class CanvasDrawContext implements DrawContext {
   public constructor(private context: CanvasRenderingContext2D) {}
@@ -11,6 +11,13 @@ export class CanvasDrawContext implements DrawContext {
       this.context.strokeStyle = options.color;
     }
     this.context.strokeRect(x, y, w, h);
+  }
+
+  public fillRect(x: number, y: number, w: number, h: number, options?: FillOptions): void {
+    if (options?.color !== undefined) {
+      this.context.fillStyle = options.color;
+    }
+    this.context.fillRect(x, y, w, h);
   }
 
   public drawImage(image: HTMLImageElement, x: number, y: number, w: number, h: number): void {

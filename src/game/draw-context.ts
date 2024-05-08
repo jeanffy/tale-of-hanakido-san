@@ -3,6 +3,10 @@ export interface StrokeOptions {
   color?: string;
 }
 
+export interface FillOptions {
+  color?: string;
+}
+
 export interface WriteTextOptions {
   horizontalAlign: 'left' | 'center' | 'right';
   verticalAlign: 'top' | 'center' | 'bottom';
@@ -10,6 +14,7 @@ export interface WriteTextOptions {
 
 export interface DrawContext {
   strokeRect(x: number, y: number, w: number, h: number, options?: StrokeOptions): void;
+  fillRect(x: number, y: number, w: number, h: number, options?: FillOptions): void;
   drawImage(image: HTMLImageElement, x: number, y: number, w: number, h: number): void;
   drawImageCropped(
     image: HTMLImageElement,

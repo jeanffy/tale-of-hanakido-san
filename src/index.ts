@@ -53,6 +53,7 @@ function gameLoop(timestamp: number): void {
   lastTimestamp = lastTimestamp ?? timestamp;
   const dt = timestamp - lastTimestamp;
   lastTimestamp = timestamp;
+  drawContext.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, { color: 'black' });
   game.nextFrame(drawContext, dt);
   window.requestAnimationFrame(gameLoop);
 }

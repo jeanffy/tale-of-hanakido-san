@@ -728,6 +728,12 @@ class CanvasDrawContext {
         }
         this.context.strokeRect(x, y, w, h);
     }
+    fillRect(x, y, w, h, options) {
+        if (options?.color !== undefined) {
+            this.context.fillStyle = options.color;
+        }
+        this.context.fillRect(x, y, w, h);
+    }
     drawImage(image, x, y, w, h) {
         this.context.drawImage(image, x, y, w, h);
     }
@@ -803,6 +809,7 @@ function gameLoop(timestamp) {
     lastTimestamp = lastTimestamp ?? timestamp;
     const dt = timestamp - lastTimestamp;
     lastTimestamp = timestamp;
+    drawContext.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, { color: 'black' });
     game.nextFrame(drawContext, dt);
     window.requestAnimationFrame(gameLoop);
 }
