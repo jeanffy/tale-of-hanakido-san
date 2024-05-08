@@ -5,9 +5,6 @@ import { WorldItem, WorldItemLayer, WorldItemRenderSecondPassFunc } from './worl
 import { ControlState } from '../control-state.js';
 import { SpriteId } from '../data/data-sprite.js';
 import { WorldCollider } from './world-collider.js';
-import { GeomRect } from '../geom/geom-rect.js';
-import { GeomCircle } from '../geom/geom-circle.js';
-import { GeomVector } from '../geom/geom-vector.js';
 
 export interface WorldInitParams {
   landscape: SpriteId[][];
@@ -16,17 +13,19 @@ export interface WorldInitParams {
   overlays: WorldItem[];
 }
 
-export class World implements WorldCollider {
+export class World {
   private landscapeSprites: SpriteId[][];
-  private backgroundItems: WorldItem[];
+  public backgroundItems: WorldItem[];
   private characters: WorldItem[];
   private overlayItems: WorldItem[];
+  private collider: WorldCollider; // TODO: remove coupling
 
   public constructor(private spriteManager: SpriteManager, params: WorldInitParams) {
     this.landscapeSprites = params.landscape;
-    this.backgroundItems = params.background; // TODO order by Y ascending
+    this.backgroundItems = params.background;
     this.characters = params.characters;
-    this.overlayItems = params.overlays; // TODO order by Y ascending
+    this.overlayItems = params.overlays;
+    this.collider = new WorldCollider(this.backgroundItems);
   }
 
   public processInputs(dt: number, controlState: ControlState): void {
@@ -34,7 +33,7 @@ export class World implements WorldCollider {
   }
 
   public update(dt: number): void {
-    this.characters.forEach(item => item.update(dt, this));
+    this.characters.forEach(item => item.update(dt, this.collider));
   }
 
   public render(drawContext: DrawContext): void {
@@ -64,22 +63,5 @@ export class World implements WorldCollider {
 
     this.overlayItems.sort((a, b) => a.position.y - b.position.y);
     this.overlayItems.forEach(item => item.render(drawContext));
-  }
-
-  public itemCollides(hitBox: GeomRect | GeomCircle): WorldItem | undefined {
-    for (const item of this.backgroundItems) {
-      if (item.hitBox === undefined) {
-        continue;
-      }
-      if (hitBox instanceof GeomRect) {
-        if (item.hitBox instanceof GeomRect) {
-          const itemHitBox = item.hitBox.moveByVector(new GeomVector(item.position.x, item.position.y));
-          if (hitBox.intersects(itemHitBox)) {
-            return item;
-          }
-        }
-      }
-    }
-    return undefined;
   }
 }

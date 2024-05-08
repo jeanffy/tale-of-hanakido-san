@@ -155,7 +155,7 @@ export class WorldHero extends WorldItem {
         this.hitBox.w,
         this.hitBox.h,
       );
-      if (collider.itemCollides(nextHitBox) !== undefined) {
+      if (collider.anyItemCollidesWithHitBox(nextHitBox) !== undefined) {
         return;
       }
     }
