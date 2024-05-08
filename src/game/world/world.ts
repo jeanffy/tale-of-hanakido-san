@@ -1,12 +1,13 @@
 import type { DrawContext } from '../draw-context.js';
 import { SpriteManager } from '../sprite-manager.js';
 import { GeomPoint } from '../geom/geom-point.js';
-import { WorldItem, WorldItemRenderSecondPassFunc } from './world-item.js';
+import { WorldItem, WorldItemLayer, WorldItemRenderSecondPassFunc } from './world-item.js';
 import { ControlState } from '../control-state.js';
 import { SpriteId } from '../data/data-sprite.js';
 import { WorldCollider } from './world-collider.js';
-import { GeomVector } from '../geom/geom-vector.js';
 import { GeomRect } from '../geom/geom-rect.js';
+import { GeomCircle } from '../geom/geom-circle.js';
+import { GeomVector } from '../geom/geom-vector.js';
 
 export interface WorldInitParams {
   landscape: SpriteId[][];
@@ -44,28 +45,39 @@ export class World implements WorldCollider {
         for (let j = 0; j < mapVerticalLength; j++) {
           const spriteId = this.landscapeSprites[j][i];
           const sprite = this.spriteManager.getSprite(spriteId);
-          sprite.renderLandscape(drawContext, new GeomPoint(i * sprite.img.width, j * sprite.img.height));
+          sprite.render(drawContext, new GeomPoint(i * sprite.img.width, j * sprite.img.height), WorldItemLayer.Landscape);
         }
       }
     }
 
-    // for each background render, we populate the second pass function to be called
-    // this second pass function allow for a background object to have a part of its sprite to
-    // display on top on any character (for example for a tree: the trunk will display under the character when
-    // the character stays before it, and the leaves will disply above the character when the character
-    // stays behind it
-    const secondPassFuncs: (WorldItemRenderSecondPassFunc | undefined)[] = [];
-    this.backgroundItems.forEach(item => secondPassFuncs.push(item.render(drawContext)));
-    this.characters.forEach(item => item.render(drawContext));
-    secondPassFuncs.filter((f): f is WorldItemRenderSecondPassFunc => f !== undefined).forEach(f => f());
+    const items = [...this.backgroundItems, ...this.characters].sort((a, b) => a.position.y - b.position.y);
+
+    const secondPassFuncs: WorldItemRenderSecondPassFunc[] = [];
+    items.forEach(item => {
+      const secondPassFunc = item.render(drawContext);
+      if (secondPassFunc !== undefined) {
+        secondPassFuncs.push(secondPassFunc);
+      }
+    });
+
+    secondPassFuncs.forEach(f => f());
+
+    this.overlayItems.sort((a, b) => a.position.y - b.position.y);
     this.overlayItems.forEach(item => item.render(drawContext));
   }
 
-  public itemCollides(hitBox: GeomRect): WorldItem | undefined {
+  public itemCollides(hitBox: GeomRect | GeomCircle): WorldItem | undefined {
     for (const item of this.backgroundItems) {
-      const spriteHitBox = item.hitBox.moveByVector(new GeomVector(item.position.x, item.position.y));
-      if (spriteHitBox.intersects(hitBox)) {
-        return item;
+      if (item.hitBox === undefined) {
+        continue;
+      }
+      if (hitBox instanceof GeomRect) {
+        if (item.hitBox instanceof GeomRect) {
+          const itemHitBox = item.hitBox.moveByVector(new GeomVector(item.position.x, item.position.y));
+          if (hitBox.intersects(itemHitBox)) {
+            return item;
+          }
+        }
       }
     }
     return undefined;

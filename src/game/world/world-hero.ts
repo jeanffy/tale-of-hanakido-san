@@ -6,18 +6,17 @@ import { ControlState } from '../control-state.js';
 import { SpriteManager } from '../sprite-manager.js';
 import { DrawContext } from '../draw-context.js';
 import { SpriteId } from '../data/data-sprite.js';
-import { WorldItem, WorldItemKind, WorldItemRenderSecondPassFunc } from './world-item.js';
+import { WorldItem, WorldItemLayer, WorldItemRenderSecondPassFunc } from './world-item.js';
 import { GeomRect } from '../geom/geom-rect.js';
 import { WorldCollider } from './world-collider.js';
+import { GeomCircle } from '../geom/geom-circle.js';
 
 enum HeroState {
   Still,
   Walking,
 }
 
-export class WorldHero implements WorldItem {
-  public kind = WorldItemKind.Character;
-
+export class WorldHero extends WorldItem {
   private runningUpSprites: Sprite[] = [];
   private runningDownSprites: Sprite[] = [];
   private runningLeftSprites: Sprite[] = [];
@@ -28,15 +27,14 @@ export class WorldHero implements WorldItem {
     numberOfSprites: 4,
   });
 
-  public position: GeomPoint;
-  public hitBox: GeomRect;
-
   private movingDirectionX: number;
   private movingDirectionY: number;
   private state: HeroState;
   private speed = 0.15;
 
-  public constructor(private spriteManager: SpriteManager, x: number, y: number) {
+  public constructor(private spriteManager: SpriteManager, layer: WorldItemLayer, x: number, y: number) {
+    super(layer, new GeomPoint(x, y));
+
     this.runningUpSprites = [
       this.spriteManager.getSprite(SpriteId.HeroMoveUp0),
       this.spriteManager.getSprite(SpriteId.HeroMoveUp1),
@@ -61,9 +59,10 @@ export class WorldHero implements WorldItem {
       this.spriteManager.getSprite(SpriteId.HeroMoveRight2),
       this.spriteManager.getSprite(SpriteId.HeroMoveRight3),
     ];
+
     this.position = new GeomPoint(x, y);
     const sprite = this.selectSprite();
-    this.hitBox = sprite.hitBox;
+    this.hitBox = sprite.hitBoxRect ?? sprite.hitBoxCircle;
     this.state = HeroState.Still;
     this.movingDirectionX = 0;
     this.movingDirectionY = 0;
@@ -116,8 +115,8 @@ export class WorldHero implements WorldItem {
   }
 
   public render(drawContext: DrawContext): WorldItemRenderSecondPassFunc | undefined {
-    const sprite = this.selectSprite();
-    sprite.renderCharacter(drawContext, this.position);
+    this.sprite = this.selectSprite();
+    super.render(drawContext);
     return undefined;
   }
 
@@ -149,14 +148,19 @@ export class WorldHero implements WorldItem {
   private handleWalk(dt: number, sprite: Sprite, direction: GeomVector, collider: WorldCollider): void {
     const moveDirection = direction.scale(this.speed * dt);
     const nextPosition = this.position.moveByVector(moveDirection);
-    const nextHitBox = new GeomRect(
-      sprite.hitBox.x + nextPosition.x,
-      sprite.hitBox.y + nextPosition.y,
-      sprite.hitBox.w,
-      sprite.hitBox.h,
-    );
-    if (collider.itemCollides(nextHitBox) !== undefined) {
-      return;
+    if (this.hitBox instanceof GeomRect) {
+      const nextHitBox = new GeomRect(
+        this.hitBox.x + nextPosition.x,
+        this.hitBox.y + nextPosition.y,
+        this.hitBox.w,
+        this.hitBox.h,
+      );
+      if (collider.itemCollides(nextHitBox) !== undefined) {
+        return;
+      }
+    }
+    if (this.hitBox instanceof GeomCircle) {
+      // TOOD
     }
     this.position = this.position.moveByVector(moveDirection);
   }
