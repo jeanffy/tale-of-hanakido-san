@@ -1,67 +1,38 @@
 import type { DrawContext } from '../draw-context.js';
-import { SpriteManager } from '../sprite-manager.js';
-import { GeomPoint } from '../geom/geom-point.js';
-import { WorldItem, WorldItemLayer, WorldItemRenderSecondPassFunc } from './world-item.js';
+import { WorldItem } from './world-item.js';
 import { ControlState } from '../control-state.js';
-import { SpriteId } from '../data/data-sprite.js';
 import { WorldCollider } from './world-collider.js';
 
-export interface WorldInitParams {
-  landscape: SpriteId[][];
-  background: WorldItem[];
-  characters: WorldItem[];
-  overlays: WorldItem[];
-}
-
 export class World {
-  private landscapeSprites: SpriteId[][];
-  public backgroundItems: WorldItem[];
-  private characters: WorldItem[];
-  private overlayItems: WorldItem[];
   private collider: WorldCollider; // TODO: remove coupling
 
-  public constructor(private spriteManager: SpriteManager, params: WorldInitParams) {
-    this.landscapeSprites = params.landscape;
-    this.backgroundItems = params.background;
-    this.characters = params.characters;
-    this.overlayItems = params.overlays;
-    this.collider = new WorldCollider(this.backgroundItems);
+  public constructor(
+    private layer0: WorldItem[],
+    private layer1: WorldItem[],
+    private layer2: WorldItem[],
+    private layer3: WorldItem[],
+  ) {
+    this.collider = new WorldCollider([
+      ...this.layer2.filter(item => item.hitBox !== undefined),
+      ...this.layer2.filter(item => item.hitBox !== undefined),
+    ]);
   }
 
   public processInputs(dt: number, controlState: ControlState): void {
-    this.characters.forEach(item => item.processInputs(controlState));
+    this.layer2.forEach(item => item.processInputs(controlState));
   }
 
   public update(dt: number): void {
-    this.characters.forEach(item => item.update(dt, this.collider));
+    this.layer2.forEach(item => item.update(dt, this.collider));
   }
 
   public render(drawContext: DrawContext): void {
-    if (this.landscapeSprites.length > 0) {
-      const mapHorizontalLength = this.landscapeSprites[0].length;
-      const mapVerticalLength = this.landscapeSprites.length;
-      for (let i = 0; i < mapHorizontalLength; i++) {
-        for (let j = 0; j < mapVerticalLength; j++) {
-          const spriteId = this.landscapeSprites[j][i];
-          const sprite = this.spriteManager.getSprite(spriteId);
-          sprite.render(drawContext, new GeomPoint(i * sprite.img.width, j * sprite.img.height), WorldItemLayer.Landscape);
-        }
-      }
-    }
+    this.layer0.forEach(item => item.render(drawContext));
 
-    const items = [...this.backgroundItems, ...this.characters].sort((a, b) => a.position.y - b.position.y);
+    const layers12Items = [...this.layer1, ...this.layer2].sort((a, b) => a.position.y - b.position.y);
+    layers12Items.forEach(item => item.render(drawContext));
 
-    const secondPassFuncs: WorldItemRenderSecondPassFunc[] = [];
-    items.forEach(item => {
-      const secondPassFunc = item.render(drawContext);
-      if (secondPassFunc !== undefined) {
-        secondPassFuncs.push(secondPassFunc);
-      }
-    });
-
-    secondPassFuncs.forEach(f => f());
-
-    this.overlayItems.sort((a, b) => a.position.y - b.position.y);
-    this.overlayItems.forEach(item => item.render(drawContext));
+    this.layer3.sort((a, b) => a.position.y - b.position.y);
+    this.layer3.forEach(item => item.render(drawContext));
   }
 }

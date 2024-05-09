@@ -1,12 +1,11 @@
-import { GeomPoint } from '../geom/geom-point.js';
 import { type Sprite } from '../sprite.js';
 import { AnimationIterator } from '../utils/animation-iterator.js';
 import { GeomVector } from '../geom/geom-vector.js';
 import { ControlState } from '../control-state.js';
 import { SpriteManager } from '../sprite-manager.js';
 import { DrawContext } from '../draw-context.js';
-import { SpriteId } from '../data/data-sprite.js';
-import { WorldItem, WorldItemLayer, WorldItemRenderSecondPassFunc } from './world-item.js';
+import { SpriteId } from '../data/data-sprite-id.js';
+import { WorldItem, WorldItemInitParams } from './world-item.js';
 import { GeomRect } from '../geom/geom-rect.js';
 import { WorldCollider } from './world-collider.js';
 import { GeomCircle } from '../geom/geom-circle.js';
@@ -32,8 +31,8 @@ export class WorldHero extends WorldItem {
   private state: HeroState;
   private speed = 0.15;
 
-  public constructor(private spriteManager: SpriteManager, layer: WorldItemLayer, x: number, y: number) {
-    super(layer, new GeomPoint(x, y));
+  public constructor(private spriteManager: SpriteManager, params: WorldItemInitParams) {
+    super(spriteManager, params);
 
     this.runningUpSprites = [
       this.spriteManager.getSprite(SpriteId.HeroMoveUp0),
@@ -60,9 +59,6 @@ export class WorldHero extends WorldItem {
       this.spriteManager.getSprite(SpriteId.HeroMoveRight3),
     ];
 
-    this.position = new GeomPoint(x, y);
-    const sprite = this.selectSprite();
-    this.hitBox = sprite.hitBoxRect ?? sprite.hitBoxCircle;
     this.state = HeroState.Still;
     this.movingDirectionX = 0;
     this.movingDirectionY = 0;
@@ -114,10 +110,9 @@ export class WorldHero extends WorldItem {
     }
   }
 
-  public render(drawContext: DrawContext): WorldItemRenderSecondPassFunc | undefined {
+  public render(drawContext: DrawContext): void {
     this.sprite = this.selectSprite();
     super.render(drawContext);
-    return undefined;
   }
 
   private selectSprite(): Sprite {
