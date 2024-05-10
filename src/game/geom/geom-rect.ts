@@ -5,6 +5,14 @@ import { Intersections } from './intersections.js';
 export class GeomRect {
   public constructor(public x: number, public y: number, public w: number, public h: number) {}
 
+  public clone(): GeomRect {
+    return new GeomRect(this.x, this.y, this.w, this.h);
+  }
+
+  public equals(other: GeomRect): boolean {
+    return this.x === other.x && this.y === other.y && this.w === other.w && this.h === other.h;
+  }
+
   public moveByVector(vector: GeomVector): GeomRect {
     return new GeomRect(this.x + vector.x, this.y + vector.y, this.w, this.h);
   }

@@ -4,6 +4,7 @@ export class CanvasDrawContext implements DrawContext {
   public constructor(private context: CanvasRenderingContext2D) {}
 
   public strokeRect(x: number, y: number, w: number, h: number, options?: StrokeOptions | undefined): void {
+    this.context.save();
     if (options?.width !== undefined) {
       this.context.lineWidth = options.width;
     }
@@ -11,17 +12,22 @@ export class CanvasDrawContext implements DrawContext {
       this.context.strokeStyle = options.color;
     }
     this.context.strokeRect(x, y, w, h);
+    this.context.restore();
   }
 
   public fillRect(x: number, y: number, w: number, h: number, options?: FillOptions): void {
+    this.context.save();
     if (options?.color !== undefined) {
       this.context.fillStyle = options.color;
     }
     this.context.fillRect(x, y, w, h);
+    this.context.restore();
   }
 
   public drawImage(image: HTMLImageElement, x: number, y: number, w: number, h: number): void {
+    this.context.save();
     this.context.drawImage(image, x, y, w, h);
+    this.context.restore();
   }
 
   public drawImageCropped(
@@ -35,10 +41,13 @@ export class CanvasDrawContext implements DrawContext {
     sw: number,
     sh: number,
   ): void {
+    this.context.save();
     this.context.drawImage(image, x, y, w, h, sx, sy, sw, sh);
+    this.context.restore();
   }
 
   public writeText(text: string, x: number, y: number, options?: WriteTextOptions): void {
+    this.context.save();
     if (options?.horizontalAlign !== undefined) {
       switch (options.horizontalAlign) {
         case 'left':
@@ -66,5 +75,6 @@ export class CanvasDrawContext implements DrawContext {
       }
     }
     this.context.fillText(text, x, y);
+    this.context.restore();
   }
 }

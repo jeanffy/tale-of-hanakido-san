@@ -3,4 +3,5 @@ export interface ControlState {
   down: boolean;
   left: boolean;
   right: boolean;
+  action: boolean;
 }

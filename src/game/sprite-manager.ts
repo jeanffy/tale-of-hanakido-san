@@ -1,95 +1,68 @@
-import { SpriteId } from './data/data-sprite-id.js';
-import { SpriteData } from './data/data-sprites.js';
+import { SpriteData, SpriteId } from './data/data-sprites.js';
+import { GeomPoint } from './geom/geom-point.js';
+import { GeomRect } from './geom/geom-rect.js';
 import { Sprite } from './sprite.js';
+import { TileManager } from './tile-manager.js';
 
-export class SpriteManager implements SpriteManager {
+export class SpriteManager {
   private sprites = new Map<SpriteId, Sprite>();
 
-  public async loadSprites(spritesData: SpriteData[]): Promise<void> {
-    for (const spriteData of spritesData) {
-      const sprite = await new Promise<Sprite>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-          resolve(new Sprite({
-            id: spriteData.id,
-            img,
-          }));
-        };
-        img.onerror = () => {
-          reject();
-        };
-        img.src = spriteData.url;
-      });
-      this.sprites.set(spriteData.id, sprite);
-    }
-  }
+  public constructor(private dataSprites: SpriteData[], private tileManager: TileManager) {}
 
   public getSprite(id: SpriteId): Sprite {
-    const sprite = this.sprites.get(id);
-    if (sprite === undefined) {
-      throw new Error(`No sprite for id '${id}'`);
+    const spriteData = this.dataSprites.find(s => s.id === id);
+    if (spriteData === undefined) {
+      console.error(`No sprite data for id '${id}'`);
+      throw new Error();
     }
-    return sprite;
+    switch (id) {
+      case SpriteId.HeroWalkingDown:
+        return this.createSprite(spriteData);
+      default:
+        let sprite = this.sprites.get(id);
+        if (sprite === undefined) {
+          sprite = this.createSprite(spriteData);
+        }
+        return sprite;
+    }
   }
 
-  public scaleSprite(img: HTMLImageElement, scale: number): HTMLImageElement {
-    if (!Number.isInteger(scale)) {
-      console.error(`Invalid scale ${scale}`);
-      throw Error();
+  private createSprite(spriteData: SpriteData): Sprite {
+    const tile = this.tileManager.getTile(spriteData.tileId);
+
+    let bbox: GeomRect;
+    if (spriteData.bbox !== undefined) {
+      bbox = new GeomRect(
+        spriteData.bbox[0],
+        spriteData.bbox[1],
+        spriteData.bbox[2] - spriteData.bbox[0] + 1,
+        spriteData.bbox[3] - spriteData.bbox[1] + 1,
+      );
+    } else {
+      bbox = tile.imageBBox;
     }
 
-    if (scale === 1) {
-      return img;
-    }
-
-    const originalCanvas = document.createElement('canvas');
-    const originalContext = originalCanvas.getContext('2d');
-    if (originalContext === null) {
-      console.error('Error creating memory canvas');
-      throw Error();
-    }
-
-    const originalWidth = img.width;
-    const originalHeight = img.height;
-    const targetWidth = originalWidth * scale;
-    const targetHeight = originalHeight * scale;
-
-    originalContext.drawImage(img, 0, 0, originalWidth, originalHeight);
-    const originalData = originalContext.getImageData(0, 0, originalWidth, originalHeight);
-
-    const targetCanvas = document.createElement('canvas');
-    targetCanvas.width = targetWidth;
-    targetCanvas.height = targetHeight;
-    const targetContext = targetCanvas.getContext('2d');
-    if (targetContext === null) {
-      console.error('Error creating memory canvas');
-      throw Error();
-    }
-
-    const targetData = targetContext.createImageData(targetWidth, targetHeight);
-
-    let targetDataIndex = 0;
-    for (let y = 0; y < originalHeight; y++) {
-      const lineStartIndex = y * originalWidth * 4;
-      const lineEndIndex = lineStartIndex + originalWidth * 4;
-      const linePixelsRGBA = originalData.data.slice(lineStartIndex, lineEndIndex);
-      for (let s = 0; s < scale; s++) {
-        for (let x = 0; x < linePixelsRGBA.length; x += 4) {
-          for (let s = 0; s < scale; s++) {
-            targetData.data[targetDataIndex++] = linePixelsRGBA[x];
-            targetData.data[targetDataIndex++] = linePixelsRGBA[x + 1];
-            targetData.data[targetDataIndex++] = linePixelsRGBA[x + 2];
-            targetData.data[targetDataIndex++] = linePixelsRGBA[x + 3];
-          }
-        }
+    let hitBox: GeomRect | undefined;
+    if (spriteData.hitBox !== undefined) {
+      if (spriteData.hitBox === 'bbox') {
+        hitBox = new GeomRect(0, 0, bbox.w, bbox.h);
+      } else {
+        hitBox = new GeomRect(
+          spriteData.hitBox[0],
+          spriteData.hitBox[1],
+          spriteData.hitBox[2] - spriteData.hitBox[0] + 1,
+          spriteData.hitBox[3] - spriteData.hitBox[1] + 1,
+        );
       }
     }
 
-    targetContext.putImageData(targetData, 0, 0);
+    let anchor: GeomPoint;
+    if (spriteData.anchor !== undefined) {
+      anchor = new GeomPoint(spriteData.anchor[0], spriteData.anchor[1]);
+    } else {
+      anchor = new GeomPoint(0, 0);
+    }
 
-    const targetImg = document.createElement('img');
-    targetImg.src = targetCanvas.toDataURL();
-
-    return targetImg;
+    return new Sprite(spriteData.id, tile, bbox, anchor, hitBox, spriteData.frames ?? 1, spriteData.delay ?? 100);
   }
 }

@@ -1,14 +1,16 @@
-import { type Sprite } from '../sprite.js';
-import { AnimationIterator } from '../utils/animation-iterator.js';
 import { GeomVector } from '../geom/geom-vector.js';
 import { ControlState } from '../control-state.js';
-import { SpriteManager } from '../sprite-manager.js';
 import { DrawContext } from '../draw-context.js';
-import { SpriteId } from '../data/data-sprite-id.js';
-import { WorldItem, WorldItemInitParams } from './world-item.js';
-import { GeomRect } from '../geom/geom-rect.js';
+import { WorldItem } from './world-item.js';
 import { WorldCollider } from './world-collider.js';
-import { GeomCircle } from '../geom/geom-circle.js';
+import { Sprite } from '../sprite.js';
+import { SpriteManager } from '../sprite-manager.js';
+import { SpriteId } from '../data/data-sprites.js';
+
+export interface WorldHeroInitParams {
+  x: number;
+  y: number;
+}
 
 enum HeroState {
   Still,
@@ -16,73 +18,64 @@ enum HeroState {
 }
 
 export class WorldHero extends WorldItem {
-  private runningUpSprites: Sprite[] = [];
-  private runningDownSprites: Sprite[] = [];
-  private runningLeftSprites: Sprite[] = [];
-  private runningRightSprites: Sprite[] = [];
+  private stillSpriteUp: Sprite;
+  private stillSpriteDown: Sprite;
+  private stillSpriteLeft: Sprite;
+  private stillSpriteRight: Sprite;
+  private stillSprite: Sprite;
 
-  private animationIterator = new AnimationIterator({
-    frameSkip: 15,
-    numberOfSprites: 4,
-  });
+  private runningUpSprite: Sprite;
+  private runningDownSprite: Sprite;
+  private runningLeftSprite: Sprite;
+  private runningRightSprite: Sprite;
 
   private movingDirectionX: number;
   private movingDirectionY: number;
   private state: HeroState;
   private speed = 0.15;
 
-  public constructor(private spriteManager: SpriteManager, params: WorldItemInitParams) {
-    super(spriteManager, params);
-
-    this.runningUpSprites = [
-      this.spriteManager.getSprite(SpriteId.HeroMoveUp0),
-      this.spriteManager.getSprite(SpriteId.HeroMoveUp1),
-      this.spriteManager.getSprite(SpriteId.HeroMoveUp2),
-      this.spriteManager.getSprite(SpriteId.HeroMoveUp3),
-    ];
-    this.runningDownSprites = [
-      this.spriteManager.getSprite(SpriteId.HeroMoveDown0),
-      this.spriteManager.getSprite(SpriteId.HeroMoveDown1),
-      this.spriteManager.getSprite(SpriteId.HeroMoveDown2),
-      this.spriteManager.getSprite(SpriteId.HeroMoveDown3),
-    ];
-    this.runningLeftSprites = [
-      this.spriteManager.getSprite(SpriteId.HeroMoveLeft0),
-      this.spriteManager.getSprite(SpriteId.HeroMoveLeft1),
-      this.spriteManager.getSprite(SpriteId.HeroMoveLeft2),
-      this.spriteManager.getSprite(SpriteId.HeroMoveLeft3),
-    ];
-    this.runningRightSprites = [
-      this.spriteManager.getSprite(SpriteId.HeroMoveRight0),
-      this.spriteManager.getSprite(SpriteId.HeroMoveRight1),
-      this.spriteManager.getSprite(SpriteId.HeroMoveRight2),
-      this.spriteManager.getSprite(SpriteId.HeroMoveRight3),
-    ];
-
+  public constructor(spriteManager: SpriteManager, params: WorldHeroInitParams) {
+    super(params);
+    this.stillSpriteUp = spriteManager.getSprite(SpriteId.HeroStillUp);
+    this.stillSpriteDown = spriteManager.getSprite(SpriteId.HeroStillDown);
+    this.stillSpriteLeft = spriteManager.getSprite(SpriteId.HeroStillLeft);
+    this.stillSpriteRight = spriteManager.getSprite(SpriteId.HeroStillRight);
+    this.runningUpSprite = spriteManager.getSprite(SpriteId.HeroWalkingUp);
+    this.runningDownSprite = spriteManager.getSprite(SpriteId.HeroWalkingDown);
+    this.runningLeftSprite = spriteManager.getSprite(SpriteId.HeroWalkingLeft);
+    this.runningRightSprite = spriteManager.getSprite(SpriteId.HeroWalkingRight);
+    this.sprite = this.selectSprite();
     this.state = HeroState.Still;
     this.movingDirectionX = 0;
     this.movingDirectionY = 0;
+    this.stillSprite = this.stillSpriteDown;
   }
 
   public processInputs(controlState: ControlState): void {
+    super.processInputs(controlState);
+
     this.state = HeroState.Still;
 
     this.movingDirectionX = 0;
     if (controlState.left) {
       this.movingDirectionX = -1;
       this.state = HeroState.Walking;
+      this.stillSprite = this.stillSpriteLeft;
     } else if (controlState.right) {
       this.movingDirectionX = 1;
       this.state = HeroState.Walking;
+      this.stillSprite = this.stillSpriteRight;
     }
 
     this.movingDirectionY = 0;
     if (controlState.up) {
       this.movingDirectionY = -1;
       this.state = HeroState.Walking;
+      this.stillSprite = this.stillSpriteUp;
     } else if (controlState.down) {
       this.movingDirectionY = 1;
       this.state = HeroState.Walking;
+      this.stillSprite = this.stillSpriteDown;
     }
 
     // if (this.isMoving) {
@@ -91,7 +84,8 @@ export class WorldHero extends WorldItem {
   }
 
   public update(dt: number, collider: WorldCollider): void {
-    const sprite = this.selectSprite();
+    this.sprite = this.selectSprite();
+    super.update(dt, collider);
 
     switch (this.state) {
       case HeroState.Walking:
@@ -104,14 +98,13 @@ export class WorldHero extends WorldItem {
         // - release right arrow key
         // - press down arrow key to get pass the object
         // - press right arrow key again
-        this.handleWalk(dt, sprite, new GeomVector(this.movingDirectionX, 0), collider);
-        this.handleWalk(dt, sprite, new GeomVector(0, this.movingDirectionY), collider);
+        this.handleWalk(dt, new GeomVector(this.movingDirectionX, 0), collider);
+        this.handleWalk(dt, new GeomVector(0, this.movingDirectionY), collider);
         break;
     }
   }
 
   public render(drawContext: DrawContext): void {
-    this.sprite = this.selectSprite();
     super.render(drawContext);
   }
 
@@ -119,43 +112,30 @@ export class WorldHero extends WorldItem {
     let sprite: Sprite | undefined;
 
     if (this.state === HeroState.Walking) {
-      const index = this.animationIterator.getSpriteIndex();
-
       if (this.movingDirectionY < 0) {
-        sprite = this.runningUpSprites[index];
+        sprite = this.runningUpSprite;
       } else if (this.movingDirectionY > 0) {
-        sprite = this.runningDownSprites[index];
+        sprite = this.runningDownSprite;
       }
       if (this.movingDirectionX < 0) {
-        sprite = this.runningLeftSprites[index];
+        sprite = this.runningLeftSprite;
       } else if (this.movingDirectionX > 0) {
-        sprite = this.runningRightSprites[index];
+        sprite = this.runningRightSprite;
       }
     }
 
     if (sprite === undefined) {
-      sprite = this.runningDownSprites[0];
+      sprite = this.stillSprite;
     }
 
     return sprite;
   }
 
-  private handleWalk(dt: number, sprite: Sprite, direction: GeomVector, collider: WorldCollider): void {
+  private handleWalk(dt: number, direction: GeomVector, collider: WorldCollider): void {
     const moveDirection = direction.scale(this.speed * dt);
     const nextPosition = this.position.moveByVector(moveDirection);
-    if (this.hitBox instanceof GeomRect) {
-      const nextHitBox = new GeomRect(
-        this.hitBox.x + nextPosition.x,
-        this.hitBox.y + nextPosition.y,
-        this.hitBox.w,
-        this.hitBox.h,
-      );
-      if (collider.anyItemCollidesWithHitBox(nextHitBox) !== undefined) {
-        return;
-      }
-    }
-    if (this.hitBox instanceof GeomCircle) {
-      // TOOD
+    if (collider.anyItemCollidesWith(this, nextPosition)) {
+      return;
     }
     this.position = this.position.moveByVector(moveDirection);
   }

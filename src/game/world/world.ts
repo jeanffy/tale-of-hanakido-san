@@ -13,8 +13,8 @@ export class World {
     private layer3: WorldItem[],
   ) {
     this.collider = new WorldCollider([
-      ...this.layer2.filter(item => item.hitBox !== undefined),
-      ...this.layer2.filter(item => item.hitBox !== undefined),
+      ...this.layer1,
+      ...this.layer2,
     ]);
   }
 

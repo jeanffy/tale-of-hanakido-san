@@ -6,6 +6,7 @@
   "configurations": [
     {
       "name": "Debug",
+      "port": 9229,
       "request": "launch",
       "skipFiles": [
         "${workspaceFolder}/**/node_modules/**/*.js",
@@ -13,6 +14,7 @@
       ],
       "smartStep": true,
       "sourceMaps": true,
+      "webRoot": "${workspaceFolder}/dist",
       "type": "chrome",
       "url": "http://localhost:8080"
     }

@@ -1,8 +1,8 @@
 import { Factory } from './game/factory.js';
-import { dataSprites } from './game/data/data-sprites.js';
 import { CanvasDrawContext } from './canvas-draw-context.js';
 import { Game } from './game/game.js';
 import { dataWorld } from './game/data/data-world.js';
+import { dataTiles } from './game/data/data-tiles.js';
 
 const SCREEN_WIDTH = 500;
 const SCREEN_HEIGHT = 500;
@@ -29,8 +29,8 @@ async function bootstrap(): Promise<void> {
   canvasDiv.width = SCREEN_WIDTH;
   canvasDiv.height = SCREEN_HEIGHT;
 
-  const spriteManager = factory.getSpriteManager();
-  await spriteManager.loadSprites(dataSprites);
+  const tileManager = factory.getTileManager();
+  await tileManager.loadTiles(dataTiles);
   const world = factory.getWorld(dataWorld);
   game = factory.getGame(world);
 
@@ -53,8 +53,26 @@ function gameLoop(timestamp: number): void {
   lastTimestamp = lastTimestamp ?? timestamp;
   const dt = timestamp - lastTimestamp;
   lastTimestamp = timestamp;
-  drawContext.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, { color: 'black' });
+
+  drawContext.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, { color: '#999' });
+
+  drawContext.strokeRect(0, 0, 400, 400, { color: 'black' });
+
+  for (let i = 50; i < SCREEN_WIDTH; i += 50) {
+    drawContext.strokeRect(i, 0, 50, SCREEN_WIDTH, { color: 'black' });
+  }
+  for (let i = 25; i < SCREEN_WIDTH; i += 25) {
+    drawContext.strokeRect(i, 0, 25, SCREEN_WIDTH, { color: '#888' });
+  }
+  for (let j = 50; j < SCREEN_HEIGHT; j += 50) {
+    drawContext.strokeRect(0, j, SCREEN_HEIGHT, 50, { color: 'black' });
+  }
+  for (let j = 25; j < SCREEN_HEIGHT; j += 25) {
+    drawContext.strokeRect(0, j, SCREEN_HEIGHT, 25, { color: '#888' });
+  }
+
   game.nextFrame(drawContext, dt);
+  game.updateControlState({ action: false });
   window.requestAnimationFrame(gameLoop);
 }
 
@@ -103,6 +121,10 @@ window.addEventListener('keyup', (event: KeyboardEvent): void => {
       break;
     case 'ArrowRight':
       game.updateControlState({ right: false });
+      event.preventDefault();
+      break;
+    case 'Space':
+      game.updateControlState({ action: true });
       event.preventDefault();
       break;
   }

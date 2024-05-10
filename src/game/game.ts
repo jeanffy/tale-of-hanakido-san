@@ -15,6 +15,7 @@ export class Game {
       down: false,
       left: false,
       right: false,
+      action: false,
     };
     this.frameRateIterator = new FrameRateIterator({ targetFps: TARGET_FPS });
   }
@@ -35,6 +36,7 @@ export class Game {
     this.controlState.down = state.down ?? this.controlState.down;
     this.controlState.left = state.left ?? this.controlState.left;
     this.controlState.right = state.right ?? this.controlState.right;
+    this.controlState.action = state.action ?? this.controlState.action;
   }
 
   private render(drawContext: DrawContext): void {

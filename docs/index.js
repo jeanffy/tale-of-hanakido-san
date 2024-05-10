@@ -30,6 +30,7 @@ class Game {
             down: false,
             left: false,
             right: false,
+            action: false,
         };
         this.frameRateIterator = new FrameRateIterator({ targetFps: TARGET_FPS });
     }
@@ -47,6 +48,7 @@ class Game {
         this.controlState.down = state.down ?? this.controlState.down;
         this.controlState.left = state.left ?? this.controlState.left;
         this.controlState.right = state.right ?? this.controlState.right;
+        this.controlState.action = state.action ?? this.controlState.action;
     }
     render(drawContext) {
         try {
@@ -60,45 +62,52 @@ class Game {
     }
 }
 
-class GeomPoint {
-    x;
-    y;
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
+class WorldCollider {
+    items;
+    constructor(items) {
+        this.items = items;
     }
-    moveByVector(vector) {
-        return new GeomPoint(this.x + vector.x, this.y + vector.y);
+    anyItemCollidesWith(checkedItem, position) {
+        for (const worldItem of this.items) {
+            if (!worldItem.canCollide() || worldItem.uniqueId === checkedItem.uniqueId) {
+                continue;
+            }
+            if (checkedItem.collidesWithOther(position, worldItem)) {
+                return worldItem;
+            }
+        }
+        return undefined;
     }
 }
 
-var WorldItemLayer;
-(function (WorldItemLayer) {
-    WorldItemLayer[WorldItemLayer["Landscape"] = 0] = "Landscape";
-    WorldItemLayer[WorldItemLayer["Background"] = 1] = "Background";
-    WorldItemLayer[WorldItemLayer["Characters"] = 2] = "Characters";
-    WorldItemLayer[WorldItemLayer["Overlay"] = 3] = "Overlay";
-})(WorldItemLayer || (WorldItemLayer = {}));
-class WorldItem {
-    layer;
-    position;
-    sprite;
-    hitBox;
-    constructor(layer, position) {
-        this.layer = layer;
-        this.position = position;
+class World {
+    layer0;
+    layer1;
+    layer2;
+    layer3;
+    collider;
+    constructor(layer0, layer1, layer2, layer3) {
+        this.layer0 = layer0;
+        this.layer1 = layer1;
+        this.layer2 = layer2;
+        this.layer3 = layer3;
+        this.collider = new WorldCollider([
+            ...this.layer1,
+            ...this.layer2,
+        ]);
     }
-    hasOverlay() {
-        return this.sprite.layers !== undefined;
+    processInputs(dt, controlState) {
+        this.layer2.forEach(item => item.processInputs(controlState));
+    }
+    update(dt) {
+        this.layer2.forEach(item => item.update(dt, this.collider));
     }
     render(drawContext) {
-        this.sprite.render(drawContext, this.position, this.layer);
-        if (this.sprite.layers !== undefined) {
-            return () => {
-                this.sprite.render(drawContext, this.position, WorldItemLayer.Overlay);
-            };
-        }
-        return undefined;
+        this.layer0.forEach(item => item.render(drawContext));
+        const layers12Items = [...this.layer1, ...this.layer2].sort((a, b) => a.position.y - b.position.y);
+        layers12Items.forEach(item => item.render(drawContext));
+        this.layer3.sort((a, b) => a.position.y - b.position.y);
+        this.layer3.forEach(item => item.render(drawContext));
     }
 }
 
@@ -136,26 +145,6 @@ var Intersections;
     Intersections.circleIntersectsWithRect = circleIntersectsWithRect;
 })(Intersections || (Intersections = {}));
 
-class GeomCircle {
-    x;
-    y;
-    r;
-    constructor(x, y, r) {
-        this.x = x;
-        this.y = y;
-        this.r = r;
-    }
-    moveByVector(vector) {
-        return new GeomCircle(this.x + vector.x, this.y + vector.y, this.r);
-    }
-    intersectsWithRect(rect) {
-        return Intersections.circleIntersectsWithRect(this, rect);
-    }
-    intersectsWithCircle(circle) {
-        return Intersections.circleIntersectsWithCircle(this, circle);
-    }
-}
-
 class GeomRect {
     x;
     y;
@@ -166,6 +155,12 @@ class GeomRect {
         this.y = y;
         this.w = w;
         this.h = h;
+    }
+    clone() {
+        return new GeomRect(this.x, this.y, this.w, this.h);
+    }
+    equals(other) {
+        return this.x === other.x && this.y === other.y && this.w === other.w && this.h === other.h;
     }
     moveByVector(vector) {
         return new GeomRect(this.x + vector.x, this.y + vector.y, this.w, this.h);
@@ -178,208 +173,58 @@ class GeomRect {
     }
 }
 
-class GeomVector {
-    x;
-    y;
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-    }
-    normalize() {
-        const magnitude = Math.sqrt(this.x * this.x + this.y * this.y);
-        if (magnitude <= 0) {
-            console.error(`Vector has an invalid magnitude (${this.x}, ${this.y})`);
-            throw new Error(`Vector has an invalid magnitude (${this.x}, ${this.y})`);
-        }
-        return new GeomVector((this.x /= magnitude), (this.y /= magnitude));
-    }
-    scale(factor) {
-        return new GeomVector(this.x * factor, this.y * factor);
-    }
-}
-
-class WorldCollider {
-    items;
-    constructor(items) {
-        this.items = items;
-    }
-    anyItemCollidesWithHitBox(hitBox) {
-        for (const item of this.items) {
-            if (item.hitBox === undefined) {
-                continue;
-            }
-            const itemPosition = new GeomVector(item.position.x, item.position.y);
-            if (hitBox instanceof GeomRect) {
-                if (item.hitBox instanceof GeomRect) {
-                    const itemHitBox = item.hitBox.moveByVector(itemPosition);
-                    if (hitBox.intersectsWithRect(itemHitBox)) {
-                        return item;
-                    }
-                }
-                else if (item.hitBox instanceof GeomCircle) {
-                    const itemHitBox = item.hitBox.moveByVector(itemPosition);
-                    if (hitBox.intersectsWithCircle(itemHitBox)) {
-                        return item;
-                    }
-                }
-            }
-            else if (hitBox instanceof GeomCircle) {
-                if (item.hitBox instanceof GeomRect) {
-                    const itemHitBox = item.hitBox.moveByVector(itemPosition);
-                    if (hitBox.intersectsWithRect(itemHitBox)) {
-                        return item;
-                    }
-                }
-                else if (item.hitBox instanceof GeomCircle) {
-                    const itemHitBox = item.hitBox.moveByVector(itemPosition);
-                    if (hitBox.intersectsWithCircle(itemHitBox)) {
-                        return item;
-                    }
-                }
-            }
-        }
-        return undefined;
-    }
-}
-
-class World {
-    spriteManager;
-    landscapeSprites;
-    backgroundItems;
-    characters;
-    overlayItems;
-    collider;
-    constructor(spriteManager, params) {
-        this.spriteManager = spriteManager;
-        this.landscapeSprites = params.landscape;
-        this.backgroundItems = params.background;
-        this.characters = params.characters;
-        this.overlayItems = params.overlays;
-        this.collider = new WorldCollider(this.backgroundItems);
-    }
-    processInputs(dt, controlState) {
-        this.characters.forEach(item => item.processInputs(controlState));
-    }
-    update(dt) {
-        this.characters.forEach(item => item.update(dt, this.collider));
-    }
-    render(drawContext) {
-        if (this.landscapeSprites.length > 0) {
-            const mapHorizontalLength = this.landscapeSprites[0].length;
-            const mapVerticalLength = this.landscapeSprites.length;
-            for (let i = 0; i < mapHorizontalLength; i++) {
-                for (let j = 0; j < mapVerticalLength; j++) {
-                    const spriteId = this.landscapeSprites[j][i];
-                    const sprite = this.spriteManager.getSprite(spriteId);
-                    sprite.render(drawContext, new GeomPoint(i * sprite.img.width, j * sprite.img.height), WorldItemLayer.Landscape);
-                }
-            }
-        }
-        const items = [...this.backgroundItems, ...this.characters].sort((a, b) => a.position.y - b.position.y);
-        const secondPassFuncs = [];
-        items.forEach(item => {
-            const secondPassFunc = item.render(drawContext);
-            if (secondPassFunc !== undefined) {
-                secondPassFuncs.push(secondPassFunc);
-            }
-        });
-        secondPassFuncs.forEach(f => f());
-        this.overlayItems.sort((a, b) => a.position.y - b.position.y);
-        this.overlayItems.forEach(item => item.render(drawContext));
-    }
-}
-
-class Sprite {
+class Tile {
     id;
-    img;
-    hitBoxRect;
-    hitBoxCircle;
-    layers;
-    constructor(params) {
-        this.id = params.id;
-        this.img = params.img;
-        this.hitBoxRect = params.hitBoxRect;
-        this.hitBoxCircle = params.hitBoxCircle;
-        this.layers = params.layers;
+    image;
+    imageBBox;
+    constructor(id, image) {
+        this.id = id;
+        this.image = image;
+        this.imageBBox = new GeomRect(0, 0, image.width, image.height);
     }
-    render(drawContext, position, layer) {
-        switch (layer) {
-            case WorldItemLayer.Overlay:
-                if (this.layers !== undefined) {
-                    drawContext.drawImageCropped(this.img, this.layers.overlay.x, this.layers.overlay.y, this.layers.overlay.w, this.layers.overlay.h, position.x + this.layers.overlay.x, position.y + this.layers.overlay.y, this.layers.overlay.w, this.layers.overlay.h);
-                }
-                break;
-            default:
-                if (this.layers !== undefined) {
-                    drawContext.drawImageCropped(this.img, this.layers.background.x, this.layers.background.y, this.layers.background.w, this.layers.background.h, position.x + this.layers.background.x, position.y + this.layers.background.y, this.layers.background.w, this.layers.background.h);
-                }
-                else {
-                    drawContext.drawImage(this.img, position.x, position.y, this.img.width, this.img.height);
-                }
-                if (this.hitBoxRect !== undefined) {
-                    drawContext.strokeRect(position.x + this.hitBoxRect.x, position.y + this.hitBoxRect.y, this.hitBoxRect.w, this.hitBoxRect.h, {
-                        color: 'yellow',
-                    });
-                }
-                if (this.hitBoxCircle !== undefined) ;
+    getCroppedImage(bbox) {
+        const canvas = document.createElement('canvas');
+        canvas.width = bbox.w;
+        canvas.height = bbox.h;
+        const context = canvas.getContext('2d');
+        context.drawImage(this.image, -bbox.x, -bbox.y);
+        const croppedImage = document.createElement('img');
+        croppedImage.src = canvas.toDataURL();
+        return croppedImage;
+    }
+    render(drawContext, bbox, position) {
+        if (bbox.equals(this.imageBBox)) {
+            drawContext.drawImage(this.image, position.x, position.y, this.image.width, this.image.height);
+        }
+        else {
+            drawContext.drawImageCropped(this.image, bbox.x, bbox.y, bbox.w, bbox.h, position.x, position.y, bbox.w, bbox.h);
         }
     }
 }
 
-class SpriteManager {
-    sprites = new Map();
-    async loadSprites(spritesData) {
-        for (const spriteData of spritesData) {
-            const sprite = await new Promise((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => {
-                    resolve(this.createSprite(spriteData, img));
+class TileManager {
+    tiles = new Map();
+    async loadTiles(dataTiles) {
+        for (const dataTile of dataTiles) {
+            const tile = await new Promise((resolve, reject) => {
+                const image = new Image();
+                image.onload = () => {
+                    resolve(new Tile(dataTile.id, image));
                 };
-                img.onerror = () => {
+                image.onerror = () => {
                     reject();
                 };
-                img.src = spriteData.url;
+                image.src = dataTile.url;
             });
-            this.sprites.set(spriteData.id, sprite);
+            this.tiles.set(dataTile.id, tile);
         }
     }
-    getSprite(id) {
-        const sprite = this.sprites.get(id);
-        if (sprite === undefined) {
-            throw new Error(`No sprite for id '${id}'`);
+    getTile(id) {
+        const tile = this.tiles.get(id);
+        if (tile === undefined) {
+            throw new Error(`No tile for id '${id}'`);
         }
-        return sprite;
-    }
-    createSprite(spriteData, img) {
-        let scale = spriteData.scale ?? 1;
-        const spriteImg = this.scaleSprite(img, scale);
-        let hitBoxRect;
-        let hitBoxCircle;
-        if (spriteData.hitBoxRect !== undefined) {
-            if (spriteData.hitBoxRect === 'bbox') {
-                hitBoxRect = new GeomRect(0, 0, img.width * scale, img.height * scale);
-            }
-            else {
-                hitBoxRect = new GeomRect(spriteData.hitBoxRect[0] * scale, spriteData.hitBoxRect[1] * scale, (spriteData.hitBoxRect[2] - spriteData.hitBoxRect[0] + 1) * scale, (spriteData.hitBoxRect[3] - spriteData.hitBoxRect[1] + 1) * scale);
-            }
-        }
-        if (spriteData.hitBoxCircle !== undefined) {
-            hitBoxCircle = new GeomCircle(spriteData.hitBoxCircle[0] * scale, spriteData.hitBoxCircle[1] * scale, spriteData.hitBoxCircle[2] * scale);
-        }
-        let layers;
-        if (spriteData.layers !== undefined) {
-            layers = {
-                background: new GeomRect(spriteData.layers.background[0] * scale, spriteData.layers.background[1] * scale, (spriteData.layers.background[2] - spriteData.layers.background[0] + 1) * scale, (spriteData.layers.background[3] - spriteData.layers.background[1] + 1) * scale),
-                overlay: new GeomRect(spriteData.layers.overlay[0] * scale, spriteData.layers.overlay[1] * scale, (spriteData.layers.overlay[2] - spriteData.layers.overlay[0] + 1) * scale, (spriteData.layers.overlay[3] - spriteData.layers.overlay[1] + 1) * scale),
-            };
-        }
-        return new Sprite({
-            id: spriteData.id,
-            img: spriteImg,
-            hitBoxRect,
-            hitBoxCircle,
-            layers,
-        });
+        return tile;
     }
     scaleSprite(img, scale) {
         if (!Number.isInteger(scale)) {
@@ -433,85 +278,159 @@ class SpriteManager {
     }
 }
 
+var TileId;
+(function (TileId) {
+    TileId[TileId["Debug01"] = 0] = "Debug01";
+    TileId[TileId["Grass0"] = 1] = "Grass0";
+    TileId[TileId["Grass1"] = 2] = "Grass1";
+    TileId[TileId["Plant"] = 3] = "Plant";
+    TileId[TileId["Bush"] = 4] = "Bush";
+    TileId[TileId["Chest"] = 5] = "Chest";
+    TileId[TileId["Book"] = 6] = "Book";
+    TileId[TileId["Hero"] = 7] = "Hero";
+})(TileId || (TileId = {}));
+const assetsDir = 'assets';
+const dataTiles = [
+    { id: TileId.Debug01, url: `${assetsDir}/debug01.png` },
+    { id: TileId.Grass0, url: `${assetsDir}/grass-empty.png` },
+    { id: TileId.Grass1, url: `${assetsDir}/grass.png` },
+    { id: TileId.Plant, url: `${assetsDir}/plant.png` },
+    { id: TileId.Bush, url: `${assetsDir}/bush.png` },
+    { id: TileId.Chest, url: `${assetsDir}/chest.png` },
+    { id: TileId.Book, url: `${assetsDir}/book.png` },
+    { id: TileId.Hero, url: `${assetsDir}/hero.png` },
+];
+
 var SpriteId;
 (function (SpriteId) {
-    SpriteId["Debug"] = "debug";
+    SpriteId["Debug01"] = "debug01";
     SpriteId["Grass0"] = "grass0";
     SpriteId["Grass1"] = "grass1";
-    SpriteId["Plant"] = "plant";
     SpriteId["Bush"] = "bush";
     SpriteId["Chest"] = "chest";
     SpriteId["Book"] = "book";
-    SpriteId["HeroMoveUp0"] = "hero-move-up-0";
-    SpriteId["HeroMoveUp1"] = "hero-move-up-1";
-    SpriteId["HeroMoveUp2"] = "hero-move-up-2";
-    SpriteId["HeroMoveUp3"] = "hero-move-up-3";
-    SpriteId["HeroMoveDown0"] = "hero-move-down-0";
-    SpriteId["HeroMoveDown1"] = "hero-move-down-1";
-    SpriteId["HeroMoveDown2"] = "hero-move-down-2";
-    SpriteId["HeroMoveDown3"] = "hero-move-down-3";
-    SpriteId["HeroMoveLeft0"] = "hero-move-left-0";
-    SpriteId["HeroMoveLeft1"] = "hero-move-left-1";
-    SpriteId["HeroMoveLeft2"] = "hero-move-left-2";
-    SpriteId["HeroMoveLeft3"] = "hero-move-left-3";
-    SpriteId["HeroMoveRight0"] = "hero-move-right-0";
-    SpriteId["HeroMoveRight1"] = "hero-move-right-1";
-    SpriteId["HeroMoveRight2"] = "hero-move-right-2";
-    SpriteId["HeroMoveRight3"] = "hero-move-right-3";
+    SpriteId["Plant"] = "plant";
+    SpriteId["PlantOverlay"] = "plant-overlay";
+    SpriteId["HeroStillUp"] = "hero-still-up";
+    SpriteId["HeroStillDown"] = "hero-still-down";
+    SpriteId["HeroStillLeft"] = "hero-still-left";
+    SpriteId["HeroStillRight"] = "hero-still-right";
+    SpriteId["HeroWalkingUp"] = "hero-walking-up";
+    SpriteId["HeroWalkingDown"] = "hero-walking-down";
+    SpriteId["HeroWalkingLeft"] = "hero-walking-left";
+    SpriteId["HeroWalkingRight"] = "hero-walking-right";
 })(SpriteId || (SpriteId = {}));
+const dataSprites = [
+    {
+        id: SpriteId.Debug01,
+        tileId: TileId.Debug01,
+        bbox: [100, 100, 250, 250],
+        anchor: [0, -50],
+        hitBox: [50, 50, 100, 100],
+    },
+    { id: SpriteId.Grass0, tileId: TileId.Grass0 },
+    { id: SpriteId.Grass1, tileId: TileId.Grass1 },
+    { id: SpriteId.Bush, tileId: TileId.Bush, hitBox: [3, 3, 35, 35] },
+    { id: SpriteId.Chest, tileId: TileId.Chest, hitBox: [0, 0, 59, 41] },
+    { id: SpriteId.Book, tileId: TileId.Book, hitBox: 'bbox' },
+    { id: SpriteId.Plant, tileId: TileId.Plant, bbox: [0, 51, 44, 86], hitBox: 'bbox', anchor: [0, -51] },
+    { id: SpriteId.PlantOverlay, tileId: TileId.Plant, bbox: [0, 0, 44, 50] },
+    { id: SpriteId.HeroStillUp, tileId: TileId.Hero, bbox: [0, 66, 44, 134], hitBox: [5, 15, 35, 65] },
+    { id: SpriteId.HeroStillDown, tileId: TileId.Hero, bbox: [0, 0, 45, 66], hitBox: [5, 15, 35, 65] },
+    { id: SpriteId.HeroStillLeft, tileId: TileId.Hero, bbox: [3, 135, 41, 200], hitBox: [5, 15, 35, 65] },
+    { id: SpriteId.HeroStillRight, tileId: TileId.Hero, bbox: [3, 201, 41, 266], hitBox: [5, 15, 35, 65] },
+    { id: SpriteId.HeroWalkingUp, tileId: TileId.Hero, bbox: [0, 66, 44, 134], hitBox: [5, 15, 35, 65], frames: 4 },
+    { id: SpriteId.HeroWalkingDown, tileId: TileId.Hero, bbox: [0, 0, 44, 65], hitBox: [5, 15, 35, 65], frames: 4 },
+    { id: SpriteId.HeroWalkingLeft, tileId: TileId.Hero, bbox: [3, 135, 41, 200], hitBox: [5, 15, 35, 65], frames: 4 },
+    { id: SpriteId.HeroWalkingRight, tileId: TileId.Hero, bbox: [3, 201, 41, 266], hitBox: [5, 15, 35, 65], frames: 4 },
+];
 
 var WorldDataItemType;
 (function (WorldDataItemType) {
     WorldDataItemType[WorldDataItemType["Hero"] = 0] = "Hero";
 })(WorldDataItemType || (WorldDataItemType = {}));
 const dataWorld = {
-    landscape: [
-        [SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0],
-        [SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass0],
-        [SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0],
-        [SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass0],
-        [SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0],
-        [SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass0],
-        [SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0],
-        [SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass1, SpriteId.Grass0, SpriteId.Grass0],
+    layer0: [
+        { spriteId: SpriteId.Grass0, x: 150, y: 250 },
+        { spriteId: SpriteId.Grass1, x: 189, y: 250 },
     ],
-    backgroundItems: [
+    layer1: [
         { spriteId: SpriteId.Plant, x: 150, y: 100 },
-        { spriteId: SpriteId.Plant, x: 195, y: 100 },
+        { spriteId: SpriteId.Plant, x: 205, y: 100 },
         { spriteId: SpriteId.Bush, x: 300, y: 210 },
         { spriteId: SpriteId.Bush, x: 300, y: 255 },
         { spriteId: SpriteId.Bush, x: 300, y: 300 },
         { spriteId: SpriteId.Chest, x: 100, y: 300 },
         { spriteId: SpriteId.Book, x: 300, y: 100 },
     ],
-    characters: [
-        { type: WorldDataItemType.Hero, x: 50, y: 100 },
+    layer2: [
+        { type: WorldDataItemType.Hero, x: 50, y: 100 }
     ],
-    overlayItems: [],
+    layer3: [
+        { spriteId: SpriteId.PlantOverlay, x: 150, y: 100 },
+        { spriteId: SpriteId.PlantOverlay, x: 205, y: 100 },
+    ],
 };
 
-class AnimationIterator {
-    index = 0;
-    numberOfSprites;
-    frameSkip;
-    skippedFrames = 0;
+class GeomPoint {
+    x;
+    y;
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    moveByVector(vector) {
+        return new GeomPoint(this.x + vector.x, this.y + vector.y);
+    }
+}
+
+function getRandomId() {
+    return btoa(`${Math.random() * 99999}`);
+}
+
+class WorldItem {
+    uniqueId;
+    sprite;
+    position;
     constructor(params) {
-        this.numberOfSprites = params.numberOfSprites;
-        this.frameSkip = params.frameSkip;
-    }
-    reset() {
-        this.index = 0;
-    }
-    getSpriteIndex() {
-        this.skippedFrames++;
-        if (this.skippedFrames > this.frameSkip) {
-            this.skippedFrames = 0;
-            this.index++;
-            if (this.index > this.numberOfSprites - 1) {
-                this.index = 0;
-            }
+        this.uniqueId = getRandomId();
+        if (params.sprite !== undefined) {
+            this.sprite = params.sprite;
         }
-        return this.index;
+        this.position = new GeomPoint(params.x, params.y);
+    }
+    canCollide() {
+        return this.sprite.hasHitBox();
+    }
+    collidesWithOther(position, item) {
+        return this.sprite.collidesWithOther(position, item.sprite, item.position);
+    }
+    processInputs(controlState) { }
+    update(dt, collider) {
+        this.sprite.update(dt);
+    }
+    render(drawContext) {
+        this.sprite.render(drawContext, this.position);
+    }
+}
+
+class GeomVector {
+    x;
+    y;
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    normalize() {
+        const magnitude = Math.sqrt(this.x * this.x + this.y * this.y);
+        if (magnitude <= 0) {
+            console.error(`Vector has an invalid magnitude (${this.x}, ${this.y})`);
+            throw new Error(`Vector has an invalid magnitude (${this.x}, ${this.y})`);
+        }
+        return new GeomVector((this.x /= magnitude), (this.y /= magnitude));
+    }
+    scale(factor) {
+        return new GeomVector(this.x * factor, this.y * factor);
     }
 }
 
@@ -521,141 +440,232 @@ var HeroState;
     HeroState[HeroState["Walking"] = 1] = "Walking";
 })(HeroState || (HeroState = {}));
 class WorldHero extends WorldItem {
-    spriteManager;
-    runningUpSprites = [];
-    runningDownSprites = [];
-    runningLeftSprites = [];
-    runningRightSprites = [];
-    animationIterator = new AnimationIterator({
-        frameSkip: 15,
-        numberOfSprites: 4,
-    });
+    stillSpriteUp;
+    stillSpriteDown;
+    stillSpriteLeft;
+    stillSpriteRight;
+    stillSprite;
+    runningUpSprite;
+    runningDownSprite;
+    runningLeftSprite;
+    runningRightSprite;
     movingDirectionX;
     movingDirectionY;
     state;
     speed = 0.15;
-    constructor(spriteManager, layer, x, y) {
-        super(layer, new GeomPoint(x, y));
-        this.spriteManager = spriteManager;
-        this.runningUpSprites = [
-            this.spriteManager.getSprite(SpriteId.HeroMoveUp0),
-            this.spriteManager.getSprite(SpriteId.HeroMoveUp1),
-            this.spriteManager.getSprite(SpriteId.HeroMoveUp2),
-            this.spriteManager.getSprite(SpriteId.HeroMoveUp3),
-        ];
-        this.runningDownSprites = [
-            this.spriteManager.getSprite(SpriteId.HeroMoveDown0),
-            this.spriteManager.getSprite(SpriteId.HeroMoveDown1),
-            this.spriteManager.getSprite(SpriteId.HeroMoveDown2),
-            this.spriteManager.getSprite(SpriteId.HeroMoveDown3),
-        ];
-        this.runningLeftSprites = [
-            this.spriteManager.getSprite(SpriteId.HeroMoveLeft0),
-            this.spriteManager.getSprite(SpriteId.HeroMoveLeft1),
-            this.spriteManager.getSprite(SpriteId.HeroMoveLeft2),
-            this.spriteManager.getSprite(SpriteId.HeroMoveLeft3),
-        ];
-        this.runningRightSprites = [
-            this.spriteManager.getSprite(SpriteId.HeroMoveRight0),
-            this.spriteManager.getSprite(SpriteId.HeroMoveRight1),
-            this.spriteManager.getSprite(SpriteId.HeroMoveRight2),
-            this.spriteManager.getSprite(SpriteId.HeroMoveRight3),
-        ];
-        this.position = new GeomPoint(x, y);
-        const sprite = this.selectSprite();
-        this.hitBox = sprite.hitBoxRect ?? sprite.hitBoxCircle;
+    constructor(spriteManager, params) {
+        super(params);
+        this.stillSpriteUp = spriteManager.getSprite(SpriteId.HeroStillUp);
+        this.stillSpriteDown = spriteManager.getSprite(SpriteId.HeroStillDown);
+        this.stillSpriteLeft = spriteManager.getSprite(SpriteId.HeroStillLeft);
+        this.stillSpriteRight = spriteManager.getSprite(SpriteId.HeroStillRight);
+        this.runningUpSprite = spriteManager.getSprite(SpriteId.HeroWalkingUp);
+        this.runningDownSprite = spriteManager.getSprite(SpriteId.HeroWalkingDown);
+        this.runningLeftSprite = spriteManager.getSprite(SpriteId.HeroWalkingLeft);
+        this.runningRightSprite = spriteManager.getSprite(SpriteId.HeroWalkingRight);
+        this.sprite = this.selectSprite();
         this.state = HeroState.Still;
         this.movingDirectionX = 0;
         this.movingDirectionY = 0;
+        this.stillSprite = this.stillSpriteDown;
     }
     processInputs(controlState) {
+        super.processInputs(controlState);
         this.state = HeroState.Still;
         this.movingDirectionX = 0;
         if (controlState.left) {
             this.movingDirectionX = -1;
             this.state = HeroState.Walking;
+            this.stillSprite = this.stillSpriteLeft;
         }
         else if (controlState.right) {
             this.movingDirectionX = 1;
             this.state = HeroState.Walking;
+            this.stillSprite = this.stillSpriteRight;
         }
         this.movingDirectionY = 0;
         if (controlState.up) {
             this.movingDirectionY = -1;
             this.state = HeroState.Walking;
+            this.stillSprite = this.stillSpriteUp;
         }
         else if (controlState.down) {
             this.movingDirectionY = 1;
             this.state = HeroState.Walking;
+            this.stillSprite = this.stillSpriteDown;
         }
     }
     update(dt, collider) {
-        const sprite = this.selectSprite();
+        this.sprite = this.selectSprite();
+        super.update(dt, collider);
         switch (this.state) {
             case HeroState.Walking:
-                this.handleWalk(dt, sprite, new GeomVector(this.movingDirectionX, 0), collider);
-                this.handleWalk(dt, sprite, new GeomVector(0, this.movingDirectionY), collider);
+                this.handleWalk(dt, new GeomVector(this.movingDirectionX, 0), collider);
+                this.handleWalk(dt, new GeomVector(0, this.movingDirectionY), collider);
                 break;
         }
     }
     render(drawContext) {
-        this.sprite = this.selectSprite();
         super.render(drawContext);
-        return undefined;
     }
     selectSprite() {
         let sprite;
         if (this.state === HeroState.Walking) {
-            const index = this.animationIterator.getSpriteIndex();
             if (this.movingDirectionY < 0) {
-                sprite = this.runningUpSprites[index];
+                sprite = this.runningUpSprite;
             }
             else if (this.movingDirectionY > 0) {
-                sprite = this.runningDownSprites[index];
+                sprite = this.runningDownSprite;
             }
             if (this.movingDirectionX < 0) {
-                sprite = this.runningLeftSprites[index];
+                sprite = this.runningLeftSprite;
             }
             else if (this.movingDirectionX > 0) {
-                sprite = this.runningRightSprites[index];
+                sprite = this.runningRightSprite;
             }
         }
         if (sprite === undefined) {
-            sprite = this.runningDownSprites[0];
+            sprite = this.stillSprite;
         }
         return sprite;
     }
-    handleWalk(dt, sprite, direction, collider) {
+    handleWalk(dt, direction, collider) {
         const moveDirection = direction.scale(this.speed * dt);
         const nextPosition = this.position.moveByVector(moveDirection);
-        if (this.hitBox instanceof GeomRect) {
-            const nextHitBox = new GeomRect(this.hitBox.x + nextPosition.x, this.hitBox.y + nextPosition.y, this.hitBox.w, this.hitBox.h);
-            if (collider.anyItemCollidesWithHitBox(nextHitBox) !== undefined) {
-                return;
-            }
+        if (collider.anyItemCollidesWith(this, nextPosition)) {
+            return;
         }
-        if (this.hitBox instanceof GeomCircle) ;
         this.position = this.position.moveByVector(moveDirection);
     }
 }
 
-class WorldObject extends WorldItem {
-    constructor(spriteManager, spriteId, layer, x, y) {
-        super(layer, new GeomPoint(x, y));
-        this.sprite = spriteManager.getSprite(spriteId);
-        this.hitBox = this.sprite.hitBoxRect ?? this.sprite.hitBoxCircle;
+class Sprite {
+    id;
+    tile;
+    bbox;
+    anchor;
+    hitBox;
+    frames;
+    delay;
+    firstFrameBBoxX;
+    currentFrame;
+    millisecBeforeNextFrame;
+    constructor(id, tile, bbox, anchor, hitBox, frames, delay) {
+        this.id = id;
+        this.tile = tile;
+        this.bbox = bbox;
+        this.anchor = anchor;
+        this.hitBox = hitBox;
+        this.frames = frames;
+        this.delay = delay;
+        this.firstFrameBBoxX = this.bbox.x;
+        this.currentFrame = 0;
+        this.millisecBeforeNextFrame = this.delay;
     }
-    processInputs(controlState) { }
-    update(dt) { }
+    hasHitBox() {
+        return this.hitBox !== undefined;
+    }
+    update(dt) {
+        if (this.frames > 1) {
+            this.millisecBeforeNextFrame -= dt;
+            if (this.millisecBeforeNextFrame < 0) {
+                this.millisecBeforeNextFrame = this.delay;
+                this.currentFrame++;
+                if (this.currentFrame >= this.frames) {
+                    this.currentFrame = 0;
+                }
+                this.bbox.x = this.firstFrameBBoxX + this.currentFrame * this.bbox.w;
+            }
+        }
+    }
+    render(drawContext, position) {
+        this.tile.render(drawContext, this.bbox, position.moveByVector(new GeomVector(-this.anchor.x, -this.anchor.y)));
+        if (this.hitBox instanceof GeomRect) {
+            drawContext.strokeRect(position.x - this.anchor.x + this.hitBox.x, position.y - this.anchor.y + this.hitBox.y, this.hitBox.w, this.hitBox.h, {
+                color: 'lightgreen',
+            });
+        }
+    }
+    collidesWithOther(position, other, otherPosition) {
+        if (this.hitBox instanceof GeomRect) {
+            const thisHitBox = new GeomRect(position.x - this.anchor.x + this.hitBox.x, position.y - this.anchor.y + this.hitBox.y, this.hitBox.w, this.hitBox.h);
+            if (other.hitBox instanceof GeomRect) {
+                const otherHitBox = new GeomRect(otherPosition.x - other.anchor.x + other.hitBox.x, otherPosition.y - other.anchor.y + other.hitBox.y, other.hitBox.w, other.hitBox.h);
+                return thisHitBox.intersectsWithRect(otherHitBox);
+            }
+        }
+        return false;
+    }
+}
+
+class SpriteManager {
+    dataSprites;
+    tileManager;
+    sprites = new Map();
+    constructor(dataSprites, tileManager) {
+        this.dataSprites = dataSprites;
+        this.tileManager = tileManager;
+    }
+    getSprite(id) {
+        const spriteData = this.dataSprites.find(s => s.id === id);
+        if (spriteData === undefined) {
+            console.error(`No sprite data for id '${id}'`);
+            throw new Error();
+        }
+        switch (id) {
+            case SpriteId.HeroWalkingDown:
+                return this.createSprite(spriteData);
+            default:
+                let sprite = this.sprites.get(id);
+                if (sprite === undefined) {
+                    sprite = this.createSprite(spriteData);
+                }
+                return sprite;
+        }
+    }
+    createSprite(spriteData) {
+        const tile = this.tileManager.getTile(spriteData.tileId);
+        let bbox;
+        if (spriteData.bbox !== undefined) {
+            bbox = new GeomRect(spriteData.bbox[0], spriteData.bbox[1], spriteData.bbox[2] - spriteData.bbox[0] + 1, spriteData.bbox[3] - spriteData.bbox[1] + 1);
+        }
+        else {
+            bbox = tile.imageBBox;
+        }
+        let hitBox;
+        if (spriteData.hitBox !== undefined) {
+            if (spriteData.hitBox === 'bbox') {
+                hitBox = new GeomRect(0, 0, bbox.w, bbox.h);
+            }
+            else {
+                hitBox = new GeomRect(spriteData.hitBox[0], spriteData.hitBox[1], spriteData.hitBox[2] - spriteData.hitBox[0] + 1, spriteData.hitBox[3] - spriteData.hitBox[1] + 1);
+            }
+        }
+        let anchor;
+        if (spriteData.anchor !== undefined) {
+            anchor = new GeomPoint(spriteData.anchor[0], spriteData.anchor[1]);
+        }
+        else {
+            anchor = new GeomPoint(0, 0);
+        }
+        return new Sprite(spriteData.id, tile, bbox, anchor, hitBox, spriteData.frames ?? 1, spriteData.delay ?? 100);
+    }
 }
 
 class Factory {
+    tileManager;
     spriteManager;
     game;
     world;
+    getTileManager() {
+        if (this.tileManager === undefined) {
+            this.tileManager = new TileManager();
+        }
+        return this.tileManager;
+    }
     getSpriteManager() {
         if (this.spriteManager === undefined) {
-            this.spriteManager = new SpriteManager();
+            this.spriteManager = new SpriteManager(dataSprites, this.getTileManager());
         }
         return this.spriteManager;
     }
@@ -667,52 +677,28 @@ class Factory {
     }
     getWorld(worldData) {
         if (this.world === undefined) {
-            this.world = new World(this.getSpriteManager(), {
-                landscape: worldData.landscape,
-                background: worldData.backgroundItems.map(item => this.createWorldItem(item, WorldItemLayer.Background)),
-                characters: worldData.characters.map(item => this.createWorldItem(item, WorldItemLayer.Characters)),
-                overlays: worldData.overlayItems.map(item => this.createWorldItem(item, WorldItemLayer.Overlay)),
-            });
+            this.world = new World(worldData.layer0.map(item => this.createWorldItem(this.getSpriteManager(), item)), worldData.layer1.map(item => this.createWorldItem(this.getSpriteManager(), item)), worldData.layer2.map(item => this.createWorldItem(this.getSpriteManager(), item)), worldData.layer3.map(item => this.createWorldItem(this.getSpriteManager(), item)));
         }
         return this.world;
     }
-    createWorldItem(dataItem, layer) {
-        switch (dataItem.type) {
-            case WorldDataItemType.Hero:
-                return new WorldHero(this.getSpriteManager(), layer, dataItem.x, dataItem.y);
-            default:
-                return new WorldObject(this.getSpriteManager(), dataItem.spriteId, layer, dataItem.x, dataItem.y);
+    createWorldItem(spriteManager, dataItem) {
+        if (dataItem.type !== undefined) {
+            switch (dataItem.type) {
+                case WorldDataItemType.Hero:
+                    return new WorldHero(spriteManager, { x: dataItem.x, y: dataItem.y });
+                default:
+                    console.error(`Unhandled item type '${dataItem.type}' at (x,y) = (${dataItem.x},${dataItem.y})`);
+                    throw new Error();
+            }
         }
+        if (dataItem.spriteId !== undefined) {
+            const sprite = spriteManager.getSprite(dataItem.spriteId);
+            return new WorldItem({ sprite, x: dataItem.x, y: dataItem.y });
+        }
+        console.error(`No spriteId nor type for at (x,y) = (${dataItem.x},${dataItem.y})`);
+        throw new Error();
     }
 }
-
-const assetsDir = 'assets';
-const scale = 3;
-const dataSprites = [
-    { id: SpriteId.Debug, url: `${assetsDir}/debug.png`, scale },
-    { id: SpriteId.Grass0, url: `${assetsDir}/grass-empty.png`, scale },
-    { id: SpriteId.Grass1, url: `${assetsDir}/grass.png`, scale },
-    { id: SpriteId.Plant, url: `${assetsDir}/plant.png`, scale, hitBoxRect: [2, 17, 13, 27], layers: { background: [0, 17, 14, 28], overlay: [0, 0, 14, 16] } },
-    { id: SpriteId.Bush, url: `${assetsDir}/bush.png`, scale, hitBoxRect: [1, 1, 11, 11] },
-    { id: SpriteId.Chest, url: `${assetsDir}/chest.png`, scale, hitBoxRect: [0, 0, 19, 13] },
-    { id: SpriteId.Book, url: `${assetsDir}/book.png`, scale, hitBoxRect: 'bbox' },
-    { id: SpriteId.HeroMoveUp0, url: `${assetsDir}/hero-move-up-0.png`, scale, hitBoxRect: [1, 12, 12, 20] },
-    { id: SpriteId.HeroMoveUp1, url: `${assetsDir}/hero-move-up-1.png`, scale, hitBoxRect: [1, 12, 12, 20] },
-    { id: SpriteId.HeroMoveUp2, url: `${assetsDir}/hero-move-up-2.png`, scale, hitBoxRect: [1, 12, 12, 20] },
-    { id: SpriteId.HeroMoveUp3, url: `${assetsDir}/hero-move-up-3.png`, scale, hitBoxRect: [1, 12, 12, 20] },
-    { id: SpriteId.HeroMoveDown0, url: `${assetsDir}/hero-move-down-0.png`, scale, hitBoxRect: [1, 12, 12, 20] },
-    { id: SpriteId.HeroMoveDown1, url: `${assetsDir}/hero-move-down-1.png`, scale, hitBoxRect: [1, 12, 12, 20] },
-    { id: SpriteId.HeroMoveDown2, url: `${assetsDir}/hero-move-down-2.png`, scale, hitBoxRect: [1, 12, 12, 20] },
-    { id: SpriteId.HeroMoveDown3, url: `${assetsDir}/hero-move-down-3.png`, scale, hitBoxRect: [1, 12, 12, 20] },
-    { id: SpriteId.HeroMoveLeft0, url: `${assetsDir}/hero-move-left-0.png`, scale, hitBoxRect: [1, 12, 12, 20] },
-    { id: SpriteId.HeroMoveLeft1, url: `${assetsDir}/hero-move-left-1.png`, scale, hitBoxRect: [1, 12, 12, 20] },
-    { id: SpriteId.HeroMoveLeft2, url: `${assetsDir}/hero-move-left-2.png`, scale, hitBoxRect: [1, 12, 12, 20] },
-    { id: SpriteId.HeroMoveLeft3, url: `${assetsDir}/hero-move-left-3.png`, scale, hitBoxRect: [1, 12, 12, 20] },
-    { id: SpriteId.HeroMoveRight0, url: `${assetsDir}/hero-move-right-0.png`, scale, hitBoxRect: [1, 12, 12, 20] },
-    { id: SpriteId.HeroMoveRight1, url: `${assetsDir}/hero-move-right-1.png`, scale, hitBoxRect: [1, 12, 12, 20] },
-    { id: SpriteId.HeroMoveRight2, url: `${assetsDir}/hero-move-right-2.png`, scale, hitBoxRect: [1, 12, 12, 20] },
-    { id: SpriteId.HeroMoveRight3, url: `${assetsDir}/hero-move-right-3.png`, scale, hitBoxRect: [1, 12, 12, 20] },
-];
 
 class CanvasDrawContext {
     context;
@@ -720,6 +706,7 @@ class CanvasDrawContext {
         this.context = context;
     }
     strokeRect(x, y, w, h, options) {
+        this.context.save();
         if (options?.width !== undefined) {
             this.context.lineWidth = options.width;
         }
@@ -727,20 +714,28 @@ class CanvasDrawContext {
             this.context.strokeStyle = options.color;
         }
         this.context.strokeRect(x, y, w, h);
+        this.context.restore();
     }
     fillRect(x, y, w, h, options) {
+        this.context.save();
         if (options?.color !== undefined) {
             this.context.fillStyle = options.color;
         }
         this.context.fillRect(x, y, w, h);
+        this.context.restore();
     }
     drawImage(image, x, y, w, h) {
+        this.context.save();
         this.context.drawImage(image, x, y, w, h);
+        this.context.restore();
     }
     drawImageCropped(image, x, y, w, h, sx, sy, sw, sh) {
+        this.context.save();
         this.context.drawImage(image, x, y, w, h, sx, sy, sw, sh);
+        this.context.restore();
     }
     writeText(text, x, y, options) {
+        this.context.save();
         if (options?.horizontalAlign !== undefined) {
             switch (options.horizontalAlign) {
                 case 'left':
@@ -768,6 +763,7 @@ class CanvasDrawContext {
             }
         }
         this.context.fillText(text, x, y);
+        this.context.restore();
     }
 }
 
@@ -790,8 +786,8 @@ async function bootstrap() {
     drawContext = new CanvasDrawContext(context);
     canvasDiv.width = SCREEN_WIDTH;
     canvasDiv.height = SCREEN_HEIGHT;
-    const spriteManager = factory.getSpriteManager();
-    await spriteManager.loadSprites(dataSprites);
+    const tileManager = factory.getTileManager();
+    await tileManager.loadTiles(dataTiles);
     const world = factory.getWorld(dataWorld);
     game = factory.getGame(world);
     window.requestAnimationFrame(gameLoop);
@@ -809,8 +805,22 @@ function gameLoop(timestamp) {
     lastTimestamp = lastTimestamp ?? timestamp;
     const dt = timestamp - lastTimestamp;
     lastTimestamp = timestamp;
-    drawContext.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, { color: 'black' });
+    drawContext.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, { color: '#999' });
+    drawContext.strokeRect(0, 0, 400, 400, { color: 'black' });
+    for (let i = 50; i < SCREEN_WIDTH; i += 50) {
+        drawContext.strokeRect(i, 0, 50, SCREEN_WIDTH, { color: 'black' });
+    }
+    for (let i = 25; i < SCREEN_WIDTH; i += 25) {
+        drawContext.strokeRect(i, 0, 25, SCREEN_WIDTH, { color: '#888' });
+    }
+    for (let j = 50; j < SCREEN_HEIGHT; j += 50) {
+        drawContext.strokeRect(0, j, SCREEN_HEIGHT, 50, { color: 'black' });
+    }
+    for (let j = 25; j < SCREEN_HEIGHT; j += 25) {
+        drawContext.strokeRect(0, j, SCREEN_HEIGHT, 25, { color: '#888' });
+    }
     game.nextFrame(drawContext, dt);
+    game.updateControlState({ action: false });
     window.requestAnimationFrame(gameLoop);
 }
 window.addEventListener('keydown', (event) => {
@@ -855,6 +865,10 @@ window.addEventListener('keyup', (event) => {
             break;
         case 'ArrowRight':
             game.updateControlState({ right: false });
+            event.preventDefault();
+            break;
+        case 'Space':
+            game.updateControlState({ action: true });
             event.preventDefault();
             break;
     }
