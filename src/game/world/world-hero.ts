@@ -1,82 +1,47 @@
 import { GeomVector } from '../geom/geom-vector.js';
 import { ControlState } from '../control-state.js';
 import { DrawContext } from '../draw-context.js';
-import { WorldItem } from './world-item.js';
+import { WorldItem, WorldItemInitParams } from './world-item.js';
 import { WorldCollider } from './world-collider.js';
-import { Sprite } from '../sprite.js';
-import { SpriteManager } from '../sprite-manager.js';
-import { SpriteId } from '../data/data-sprites.js';
-
-export interface WorldHeroInitParams {
-  x: number;
-  y: number;
-}
-
-enum HeroState {
-  Still,
-  Walking,
-}
+import { SpriteHeroState } from '../data/data-sprites.js';
 
 export class WorldHero extends WorldItem {
-  private stillSpriteUp: Sprite;
-  private stillSpriteDown: Sprite;
-  private stillSpriteLeft: Sprite;
-  private stillSpriteRight: Sprite;
-  private stillSprite: Sprite;
-
-  private runningUpSprite: Sprite;
-  private runningDownSprite: Sprite;
-  private runningLeftSprite: Sprite;
-  private runningRightSprite: Sprite;
-
   private movingDirectionX: number;
   private movingDirectionY: number;
-  private state: HeroState;
+  private state: SpriteHeroState;
   private speed = 0.15;
 
-  public constructor(spriteManager: SpriteManager, params: WorldHeroInitParams) {
+  public constructor(params: WorldItemInitParams) {
     super(params);
-    this.stillSpriteUp = spriteManager.getSprite(SpriteId.HeroStillUp);
-    this.stillSpriteDown = spriteManager.getSprite(SpriteId.HeroStillDown);
-    this.stillSpriteLeft = spriteManager.getSprite(SpriteId.HeroStillLeft);
-    this.stillSpriteRight = spriteManager.getSprite(SpriteId.HeroStillRight);
-    this.runningUpSprite = spriteManager.getSprite(SpriteId.HeroWalkingUp);
-    this.runningDownSprite = spriteManager.getSprite(SpriteId.HeroWalkingDown);
-    this.runningLeftSprite = spriteManager.getSprite(SpriteId.HeroWalkingLeft);
-    this.runningRightSprite = spriteManager.getSprite(SpriteId.HeroWalkingRight);
-    this.sprite = this.selectSprite();
-    this.state = HeroState.Still;
+    this.state = SpriteHeroState.StillDown;
     this.movingDirectionX = 0;
     this.movingDirectionY = 0;
-    this.stillSprite = this.stillSpriteDown;
   }
 
   public processInputs(controlState: ControlState): void {
     super.processInputs(controlState);
 
-    this.state = HeroState.Still;
+    this.state = SpriteHeroState.StillDown;
 
     this.movingDirectionX = 0;
     if (controlState.left) {
       this.movingDirectionX = -1;
-      this.state = HeroState.Walking;
-      this.stillSprite = this.stillSpriteLeft;
+      this.state = SpriteHeroState.WalkingLeft;
     } else if (controlState.right) {
       this.movingDirectionX = 1;
-      this.state = HeroState.Walking;
-      this.stillSprite = this.stillSpriteRight;
+      this.state = SpriteHeroState.WalkingRight;
     }
 
     this.movingDirectionY = 0;
     if (controlState.up) {
       this.movingDirectionY = -1;
-      this.state = HeroState.Walking;
-      this.stillSprite = this.stillSpriteUp;
+      this.state = SpriteHeroState.WalkingUp;
     } else if (controlState.down) {
       this.movingDirectionY = 1;
-      this.state = HeroState.Walking;
-      this.stillSprite = this.stillSpriteDown;
+      this.state = SpriteHeroState.WalkingDown;
     }
+
+    this.sprite.selectState(this.state);
 
     // if (this.isMoving) {
     //   this.movingDirection = this.movingDirection.normalize();
@@ -84,11 +49,13 @@ export class WorldHero extends WorldItem {
   }
 
   public update(dt: number, collider: WorldCollider): void {
-    this.sprite = this.selectSprite();
     super.update(dt, collider);
 
     switch (this.state) {
-      case HeroState.Walking:
+      case SpriteHeroState.WalkingUp:
+      case SpriteHeroState.WalkingDown:
+      case SpriteHeroState.WalkingLeft:
+      case SpriteHeroState.WalkingRight:
         // move in two steps (horizontally and vertically) to handle the case:
         // - hero moves right (right arrow key is pressed)
         // - hero collides with an object (still with right arrow key pressed) -> hero stops moving
@@ -106,29 +73,6 @@ export class WorldHero extends WorldItem {
 
   public render(drawContext: DrawContext): void {
     super.render(drawContext);
-  }
-
-  private selectSprite(): Sprite {
-    let sprite: Sprite | undefined;
-
-    if (this.state === HeroState.Walking) {
-      if (this.movingDirectionY < 0) {
-        sprite = this.runningUpSprite;
-      } else if (this.movingDirectionY > 0) {
-        sprite = this.runningDownSprite;
-      }
-      if (this.movingDirectionX < 0) {
-        sprite = this.runningLeftSprite;
-      } else if (this.movingDirectionX > 0) {
-        sprite = this.runningRightSprite;
-      }
-    }
-
-    if (sprite === undefined) {
-      sprite = this.stillSprite;
-    }
-
-    return sprite;
   }
 
   private handleWalk(dt: number, direction: GeomVector, collider: WorldCollider): void {

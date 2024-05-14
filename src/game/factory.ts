@@ -5,7 +5,7 @@ import { WorldData, WorldDataItemType, WorldDataLayerItem } from './data/data-wo
 import { WorldItem } from './world/world-item.js';
 import { WorldHero } from './world/world-hero.js';
 import { SpriteManager } from './sprite-manager.js';
-import { dataSprites } from './data/data-sprites.js';
+import { spritesData } from './data/data-sprites.js';
 
 export class Factory {
   private tileManager: TileManager | undefined;
@@ -22,7 +22,7 @@ export class Factory {
 
   public getSpriteManager(): SpriteManager {
     if (this.spriteManager === undefined) {
-      this.spriteManager = new SpriteManager(dataSprites, this.getTileManager());
+      this.spriteManager = new SpriteManager(spritesData, this.getTileManager());
     }
     return this.spriteManager;
   }
@@ -47,22 +47,18 @@ export class Factory {
   }
 
   private createWorldItem(spriteManager: SpriteManager, dataItem: WorldDataLayerItem): WorldItem {
+    const sprite = spriteManager.getSprite(dataItem.spriteId);
+
     if (dataItem.type !== undefined) {
       switch (dataItem.type) {
         case WorldDataItemType.Hero:
-          return new WorldHero(spriteManager, { x: dataItem.x, y: dataItem.y });
+          return new WorldHero({ sprite, x: dataItem.x, y: dataItem.y });
         default:
           console.error(`Unhandled item type '${dataItem.type}' at (x,y) = (${dataItem.x},${dataItem.y})`);
           throw new Error();
       }
     }
 
-    if (dataItem.spriteId !== undefined) {
-      const sprite = spriteManager.getSprite(dataItem.spriteId);
-      return new WorldItem({ sprite, x: dataItem.x, y: dataItem.y });
-    }
-
-    console.error(`No spriteId nor type for at (x,y) = (${dataItem.x},${dataItem.y})`);
-    throw new Error();
+    return new WorldItem({ sprite, x: dataItem.x, y: dataItem.y });
   }
 }

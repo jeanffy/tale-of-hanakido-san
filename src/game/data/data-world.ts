@@ -5,8 +5,7 @@ export enum WorldDataItemType {
 }
 
 export interface WorldDataLayerItem {
-  // spriteId or type must be defined, not both nor none
-  spriteId?: SpriteId;
+  spriteId: SpriteId;
   type?: WorldDataItemType;
   // (x,y) = position (top-left corner of sprite)
   x: number;
@@ -36,7 +35,7 @@ export const dataWorld: WorldData = {
     { spriteId: SpriteId.Book, x: 300, y: 100 },
   ],
   layer2: [
-    { type: WorldDataItemType.Hero, x: 50, y: 100 }
+    { spriteId: SpriteId.Hero, type: WorldDataItemType.Hero, x: 50, y: 100 }
   ],
   layer3: [
     { spriteId: SpriteId.PlantOverlay, x: 150, y: 100 },

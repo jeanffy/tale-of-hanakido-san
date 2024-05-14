@@ -1,50 +1,58 @@
-import { SpriteData, SpriteId } from './data/data-sprites.js';
+import { SpriteData2, SpriteId } from './data/data-sprites.js';
 import { GeomPoint } from './geom/geom-point.js';
 import { GeomRect } from './geom/geom-rect.js';
-import { Sprite } from './sprite.js';
+import { Sprite, SpriteState } from './sprite.js';
 import { TileManager } from './tile-manager.js';
 
 export class SpriteManager {
   private sprites = new Map<SpriteId, Sprite>();
 
-  public constructor(private dataSprites: SpriteData[], private tileManager: TileManager) {}
+  public constructor(private spritesData: SpriteData2[], private tileManager: TileManager) {}
 
   public getSprite(id: SpriteId): Sprite {
-    const spriteData = this.dataSprites.find(s => s.id === id);
+    const spriteData = this.spritesData.find(s => s.id === id);
     if (spriteData === undefined) {
       console.error(`No sprite data for id '${id}'`);
       throw new Error();
     }
-    switch (id) {
-      case SpriteId.HeroWalkingDown:
-        return this.createSprite(spriteData);
-      default:
-        let sprite = this.sprites.get(id);
-        if (sprite === undefined) {
-          sprite = this.createSprite(spriteData);
-        }
-        return sprite;
+    let sprite = this.sprites.get(id);
+    if (sprite === undefined) {
+      sprite = this.createSprite(spriteData);
     }
+    return sprite;
   }
 
-  private createSprite(spriteData: SpriteData): Sprite {
-    const tile = this.tileManager.getTile(spriteData.tileId);
+  private createSprite(spriteData: SpriteData2): Sprite {
+    const states: SpriteState[] = [];
+    for (const state of spriteData.states) {
+      const tile = this.tileManager.getTile(state.tileId);
 
-    let bbox: GeomRect;
-    if (spriteData.bbox !== undefined) {
-      bbox = new GeomRect(
-        spriteData.bbox[0],
-        spriteData.bbox[1],
-        spriteData.bbox[2] - spriteData.bbox[0] + 1,
-        spriteData.bbox[3] - spriteData.bbox[1] + 1,
-      );
-    } else {
-      bbox = tile.imageBBox;
+      let bbox: GeomRect;
+      if (state.bbox !== undefined) {
+        bbox = new GeomRect(
+          state.bbox[0],
+          state.bbox[1],
+          state.bbox[2] - state.bbox[0] + 1,
+          state.bbox[3] - state.bbox[1] + 1,
+        );
+      } else {
+        bbox = tile.imageBBox;
+      }
+
+      let anchor: GeomPoint;
+      if (state.anchor !== undefined) {
+        anchor = new GeomPoint(state.anchor[0], state.anchor[1]);
+      } else {
+        anchor = new GeomPoint(0, 0);
+      }
+
+      states.push(new SpriteState(state.label, tile, bbox, anchor, state.frames ?? 1, state.delay ?? 100));
     }
 
     let hitBox: GeomRect | undefined;
     if (spriteData.hitBox !== undefined) {
       if (spriteData.hitBox === 'bbox') {
+        const bbox = states[0].bbox;
         hitBox = new GeomRect(0, 0, bbox.w, bbox.h);
       } else {
         hitBox = new GeomRect(
@@ -56,13 +64,11 @@ export class SpriteManager {
       }
     }
 
-    let anchor: GeomPoint;
-    if (spriteData.anchor !== undefined) {
-      anchor = new GeomPoint(spriteData.anchor[0], spriteData.anchor[1]);
-    } else {
-      anchor = new GeomPoint(0, 0);
+    let hitBoxAnchor: GeomPoint | undefined;
+    if (spriteData.hitBoxAnchor !== undefined) {
+      hitBoxAnchor = new GeomPoint(spriteData.hitBoxAnchor[0], spriteData.hitBoxAnchor[1]);
     }
 
-    return new Sprite(spriteData.id, tile, bbox, anchor, hitBox, spriteData.frames ?? 1, spriteData.delay ?? 100);
+    return new Sprite(states, hitBox, hitBoxAnchor);
   }
 }

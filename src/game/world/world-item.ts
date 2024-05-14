@@ -6,21 +6,19 @@ import { getRandomId } from '../utils/random-id.js';
 import { WorldCollider } from './world-collider.js';
 
 export interface WorldItemInitParams {
-  sprite?: Sprite;
+  sprite: Sprite;
   x: number;
   y: number;
 }
 
 export class WorldItem {
   public uniqueId: string;
-  public sprite!: Sprite;
+  public sprite: Sprite;
   public position: GeomPoint;
 
   public constructor(params: WorldItemInitParams) {
     this.uniqueId = getRandomId();
-    if (params.sprite !== undefined) {
-      this.sprite = params.sprite;
-    }
+    this.sprite = params.sprite;
     this.position = new GeomPoint(params.x, params.y);
   }
 
