@@ -35,6 +35,10 @@ export class WorldItem {
     return this.sprite.bbox;
   }
 
+  public get hitBox(): GeomRect | undefined {
+    return this.sprite.hitBox;
+  }
+
   public processInputs(controlState: ControlState): void {}
 
   public update(dt: number, collider: WorldCollider): void {

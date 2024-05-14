@@ -63,6 +63,6 @@ export const spritesData: SpriteData2[] = [
       { label: SpriteHeroState.WalkingLeft, tileId: TileId.Hero, bbox: [3, 135, 41, 200], frames: 4 },
       { label: SpriteHeroState.WalkingRight, tileId: TileId.Hero, bbox: [3, 201, 41, 266], frames: 4 },
     ],
-    hitBox: [5, 15, 35, 65],
+    hitBox: [5, 30, 35, 65],
   }
 ];

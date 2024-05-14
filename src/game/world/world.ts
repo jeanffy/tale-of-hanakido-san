@@ -12,10 +12,7 @@ export class World {
     private layer2: WorldItem[],
     private layer3: WorldItem[],
   ) {
-    this.collider = new WorldCollider([
-      ...this.layer1,
-      ...this.layer2,
-    ]);
+    this.collider = new WorldCollider([...this.layer1, ...this.layer2]);
   }
 
   public processInputs(dt: number, controlState: ControlState): void {
@@ -29,7 +26,9 @@ export class World {
   public render(drawContext: DrawContext): void {
     this.layer0.forEach(item => item.render(drawContext));
 
-    const layers12Items = [...this.layer1, ...this.layer2].sort((a, b) => b.position.y + b.bbox.h - a.position.y + a.bbox.h);
+    const layers12Items = [...this.layer1, ...this.layer2].sort(
+      (a, b) => a.position.y + (a.hitBox?.h ?? 0) - (b.position.y + (b.hitBox?.h ?? 0)),
+    );
     layers12Items.forEach(item => item.render(drawContext));
 
     this.layer3.sort((a, b) => a.position.y - b.position.y);

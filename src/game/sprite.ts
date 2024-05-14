@@ -49,8 +49,9 @@ export class Sprite {
   private currentState: SpriteState;
 
   public constructor(
+    public id: string,
     private states: SpriteState[],
-    private hitBox: GeomRect | undefined, // hitBox inside the bbox (relative pixel coordinates, relative to bbox)
+    private _hitBox: GeomRect | undefined, // hitBox inside the bbox (relative pixel coordinates, relative to bbox)
     private hitBoxAnchor: GeomPoint | undefined,
   ) {
     if (states.length < 1) {
@@ -64,8 +65,12 @@ export class Sprite {
     return this.currentState.bbox;
   }
 
+  public get hitBox(): GeomRect |  undefined {
+    return this._hitBox;
+  }
+
   public hasHitBox(): boolean {
-    return this.hitBox !== undefined;
+    return this._hitBox !== undefined;
   }
 
   public selectState(label: string): void {
@@ -83,12 +88,12 @@ export class Sprite {
   public render(drawContext: DrawContext, position: GeomPoint): void {
     this.currentState.render(drawContext, position);
 
-    if (this.hitBox instanceof GeomRect) {
+    if (this._hitBox instanceof GeomRect) {
       drawContext.strokeRect(
-        position.x - (this.hitBoxAnchor?.x ?? 0) + this.hitBox.x,
-        position.y - (this.hitBoxAnchor?.y ?? 0) + this.hitBox.y,
-        this.hitBox.w,
-        this.hitBox.h,
+        position.x - (this.hitBoxAnchor?.x ?? 0) + this._hitBox.x,
+        position.y - (this.hitBoxAnchor?.y ?? 0) + this._hitBox.y,
+        this._hitBox.w,
+        this._hitBox.h,
         {
           color: 'lightgreen',
         },
@@ -97,20 +102,20 @@ export class Sprite {
   }
 
   public collidesWithOther(position: GeomPoint, other: Sprite, otherPosition: GeomPoint): boolean {
-    if (this.hitBox instanceof GeomRect) {
+    if (this._hitBox instanceof GeomRect) {
       const thisHitBox = new GeomRect(
-        position.x - (this.hitBoxAnchor?.x ?? 0) + this.hitBox.x,
-        position.y - (this.hitBoxAnchor?.y ?? 0) + this.hitBox.y,
-        this.hitBox.w,
-        this.hitBox.h,
+        position.x - (this.hitBoxAnchor?.x ?? 0) + this._hitBox.x,
+        position.y - (this.hitBoxAnchor?.y ?? 0) + this._hitBox.y,
+        this._hitBox.w,
+        this._hitBox.h,
       );
 
-      if (other.hitBox instanceof GeomRect) {
+      if (other._hitBox instanceof GeomRect) {
         const otherHitBox = new GeomRect(
-          otherPosition.x - (other.hitBoxAnchor?.x ?? 0) + other.hitBox.x,
-          otherPosition.y - (other.hitBoxAnchor?.y ?? 0) + other.hitBox.y,
-          other.hitBox.w,
-          other.hitBox.h,
+          otherPosition.x - (other.hitBoxAnchor?.x ?? 0) + other._hitBox.x,
+          otherPosition.y - (other.hitBoxAnchor?.y ?? 0) + other._hitBox.y,
+          other._hitBox.w,
+          other._hitBox.h,
         );
         return thisHitBox.intersectsWithRect(otherHitBox);
       }
