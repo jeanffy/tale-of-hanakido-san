@@ -14,6 +14,18 @@ export function copyIndexHtml() {
   };
 }
 
+export function copyIndexCss() {
+  return {
+    name: 'copy-index-css',
+    closeBundle() {
+      const outputDir = 'docs';
+      fs.mkdirSync(outputDir, { recursive: true });
+      console.log(`src/index.css -> ${outputDir}/index.css`);
+      fs.copyFileSync('src/index.css', `${outputDir}/index.css`);
+    }
+  };
+}
+
 export function copyAssets() {
   return {
     name: 'copy-assets',

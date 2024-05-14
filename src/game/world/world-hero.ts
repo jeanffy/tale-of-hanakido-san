@@ -5,11 +5,14 @@ import { WorldItem, WorldItemInitParams } from './world-item.js';
 import { WorldCollider } from './world-collider.js';
 import { SpriteHeroState } from '../data/data-sprites.js';
 
+const SPEED_WALKING = 0.1;
+const SPEED_RUNNING = 0.2;
+
 export class WorldHero extends WorldItem {
   private movingDirectionX: number;
   private movingDirectionY: number;
   private state: SpriteHeroState;
-  private speed = 0.15;
+  private speed = SPEED_WALKING;
 
   public constructor(params: WorldItemInitParams) {
     super(params);
@@ -43,9 +46,11 @@ export class WorldHero extends WorldItem {
 
     this.sprite.selectState(this.state);
 
-    // if (this.isMoving) {
-    //   this.movingDirection = this.movingDirection.normalize();
-    // }
+    this.speed = controlState.control ? SPEED_RUNNING : SPEED_WALKING;
+
+    if (controlState.action) {
+      console.log('ACTION');
+    }
   }
 
   public update(dt: number, collider: WorldCollider): void {

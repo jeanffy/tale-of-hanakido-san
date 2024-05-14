@@ -60,6 +60,10 @@ export class Sprite {
     this.currentState = this.states[0];
   }
 
+  public get bbox(): GeomRect {
+    return this.currentState.bbox;
+  }
+
   public hasHitBox(): boolean {
     return this.hitBox !== undefined;
   }

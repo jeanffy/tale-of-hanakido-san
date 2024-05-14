@@ -1,6 +1,7 @@
 import { ControlState } from '../control-state.js';
 import { DrawContext } from '../draw-context.js';
 import { GeomPoint } from '../geom/geom-point.js';
+import { GeomRect } from '../geom/geom-rect.js';
 import { Sprite } from '../sprite.js';
 import { getRandomId } from '../utils/random-id.js';
 import { WorldCollider } from './world-collider.js';
@@ -28,6 +29,10 @@ export class WorldItem {
 
   public collidesWithOther(position: GeomPoint, item: WorldItem): boolean {
     return this.sprite.collidesWithOther(position, item.sprite, item.position);
+  }
+
+  public get bbox(): GeomRect {
+    return this.sprite.bbox;
   }
 
   public processInputs(controlState: ControlState): void {}

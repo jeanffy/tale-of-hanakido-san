@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "nodemon",
-    "build": "node clean-directory.mjs dist && tsc && copyfiles -u 1 src/index.html dist && copyfiles -u 2 \"src/assets/**/*.{jpg,png}\" dist/assets",
+    "build": "sh build.sh",
     "publish": "rollup -c"
   },
   "dependencies": {},
