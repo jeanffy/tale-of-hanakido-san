@@ -1,5 +1,5 @@
-import { dataTiles } from './game/data/data-tiles.js';
-import { dataWorld } from './game/data/data-world.js';
+import { tilesData } from './game/data/tiles-data.js';
+import { sceneData } from './game/data/scene-data.js';
 import { DrawContext } from './game/draw-context.js';
 import { Factory } from './game/factory.js';
 import { Game } from './game/game.js';
@@ -31,11 +31,11 @@ export class App {
     this.canvas.height = SCREEN_HEIGHT;
 
     const tileManager = factory.getTileManager();
-    await tileManager.loadTiles(dataTiles);
+    await tileManager.loadTiles(tilesData);
 
-    const world = factory.getWorld(dataWorld);
+    const scene = factory.getScene(sceneData);
 
-    this._game = factory.getGame(world);
+    this._game = factory.getGame(scene);
 
     this.setupControls();
 

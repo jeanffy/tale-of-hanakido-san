@@ -1,18 +1,18 @@
 import type { DrawContext } from '../draw-context.js';
-import { WorldItem } from './world-item.js';
+import { SceneItem } from './scene-item.js';
 import { ControlState } from '../control-state.js';
-import { WorldCollider } from './world-collider.js';
+import { SceneCollider } from './scene-collider.js';
 
-export class World {
-  private collider: WorldCollider; // TODO: remove coupling
+export class Scene {
+  private collider: SceneCollider; // TODO: remove coupling
 
   public constructor(
-    private layer0: WorldItem[],
-    private layer1: WorldItem[],
-    private layer2: WorldItem[],
-    private layer3: WorldItem[],
+    private layer0: SceneItem[],
+    private layer1: SceneItem[],
+    private layer2: SceneItem[],
+    private layer3: SceneItem[],
   ) {
-    this.collider = new WorldCollider([...this.layer1, ...this.layer2]);
+    this.collider = new SceneCollider([...this.layer1, ...this.layer2]);
   }
 
   public processInputs(dt: number, controlState: ControlState): void {

@@ -1,4 +1,4 @@
-import { SpriteData2, SpriteId } from './data/data-sprites.js';
+import { SpriteData2, SpriteId } from './data/sprites-data.js';
 import { GeomPoint } from './geom/geom-point.js';
 import { GeomRect } from './geom/geom-rect.js';
 import { Sprite, SpriteState } from './sprite.js';

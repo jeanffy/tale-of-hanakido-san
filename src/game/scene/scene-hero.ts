@@ -1,20 +1,20 @@
 import { GeomVector } from '../geom/geom-vector.js';
 import { ControlState } from '../control-state.js';
 import { DrawContext } from '../draw-context.js';
-import { WorldItem, WorldItemInitParams } from './world-item.js';
-import { WorldCollider } from './world-collider.js';
-import { SpriteHeroState } from '../data/data-sprites.js';
+import { SceneItem, SceneItemInitParams } from './scene-item.js';
+import { SceneCollider } from './scene-collider.js';
+import { SpriteHeroState } from '../data/sprites-data.js';
 
 const SPEED_WALKING = 0.1;
 const SPEED_RUNNING = 0.2;
 
-export class WorldHero extends WorldItem {
+export class SceneHero extends SceneItem {
   private movingDirectionX: number;
   private movingDirectionY: number;
   private state: SpriteHeroState;
   private speed = SPEED_WALKING;
 
-  public constructor(params: WorldItemInitParams) {
+  public constructor(params: SceneItemInitParams) {
     super(params);
     this.state = SpriteHeroState.StillDown;
     this.movingDirectionX = 0;
@@ -53,7 +53,7 @@ export class WorldHero extends WorldItem {
     }
   }
 
-  public update(dt: number, collider: WorldCollider): void {
+  public update(dt: number, collider: SceneCollider): void {
     super.update(dt, collider);
 
     switch (this.state) {
@@ -80,7 +80,7 @@ export class WorldHero extends WorldItem {
     super.render(drawContext);
   }
 
-  private handleWalk(dt: number, direction: GeomVector, collider: WorldCollider): void {
+  private handleWalk(dt: number, direction: GeomVector, collider: SceneCollider): void {
     const moveDirection = direction.scale(this.speed * dt);
     const nextPosition = this.position.moveByVector(moveDirection);
     if (collider.anyItemCollidesWith(this, nextPosition)) {

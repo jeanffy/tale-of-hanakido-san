@@ -5,10 +5,21 @@
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tale of Hanakido san</title>
+    <link rel="stylesheet" href="index.css" />
   </head>
   <body>
     <main>
+      <div class="controls">
+        <button id="ui-btn-stop">stop</button>
+        <button id="ui-btn-start">start</button>
+        <button id="ui-btn-step">step</button>
+      </div>
       <canvas id="canvas"></canvas>
+      <ul>
+        <li>Arrow keys: move around</li>
+        <li>Z: run (W on azerty keyboard)</li>
+        <li>X: action</li>
+      </ul>
     </main>
     <script type="module" src="index.js"></script>
   </body>

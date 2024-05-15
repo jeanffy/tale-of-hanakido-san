@@ -1,17 +1,17 @@
 import { Game } from './game.js';
-import { World } from './world/world.js';
+import { Scene } from './scene/scene.js';
 import { TileManager } from './tile-manager.js';
-import { WorldData, WorldDataItemType, WorldDataLayerItem } from './data/data-world.js';
-import { WorldItem } from './world/world-item.js';
-import { WorldHero } from './world/world-hero.js';
+import { SceneData, SceneDataItemType, SceneDataLayerItem } from './data/scene-data.js';
+import { SceneItem } from './scene/scene-item.js';
+import { SceneHero } from './scene/scene-hero.js';
 import { SpriteManager } from './sprite-manager.js';
-import { spritesData } from './data/data-sprites.js';
+import { spritesData } from './data/sprites-data.js';
 
 export class Factory {
   private tileManager: TileManager | undefined;
   private spriteManager: SpriteManager | undefined;
   private game: Game | undefined;
-  private world: World | undefined;
+  private scene: Scene | undefined;
 
   public getTileManager(): TileManager {
     if (this.tileManager === undefined) {
@@ -27,38 +27,38 @@ export class Factory {
     return this.spriteManager;
   }
 
-  public getGame(world: World): Game {
+  public getGame(scene: Scene): Game {
     if (this.game === undefined) {
-      this.game = new Game(world);
+      this.game = new Game(scene);
     }
     return this.game;
   }
 
-  public getWorld(worldData: WorldData): World {
-    if (this.world === undefined) {
-      this.world = new World(
-        worldData.layer0.map(item => this.createWorldItem(this.getSpriteManager(), item)),
-        worldData.layer1.map(item => this.createWorldItem(this.getSpriteManager(), item)),
-        worldData.layer2.map(item => this.createWorldItem(this.getSpriteManager(), item)),
-        worldData.layer3.map(item => this.createWorldItem(this.getSpriteManager(), item)),
+  public getScene(sceneData: SceneData): Scene {
+    if (this.scene === undefined) {
+      this.scene = new Scene(
+        sceneData.layer0.map(item => this.createSceneItem(this.getSpriteManager(), item)),
+        sceneData.layer1.map(item => this.createSceneItem(this.getSpriteManager(), item)),
+        sceneData.layer2.map(item => this.createSceneItem(this.getSpriteManager(), item)),
+        sceneData.layer3.map(item => this.createSceneItem(this.getSpriteManager(), item)),
       );
     }
-    return this.world;
+    return this.scene;
   }
 
-  private createWorldItem(spriteManager: SpriteManager, dataItem: WorldDataLayerItem): WorldItem {
+  private createSceneItem(spriteManager: SpriteManager, dataItem: SceneDataLayerItem): SceneItem {
     const sprite = spriteManager.getSprite(dataItem.spriteId);
 
     if (dataItem.type !== undefined) {
       switch (dataItem.type) {
-        case WorldDataItemType.Hero:
-          return new WorldHero({ sprite, x: dataItem.x, y: dataItem.y });
+        case SceneDataItemType.Hero:
+          return new SceneHero({ sprite, x: dataItem.x, y: dataItem.y });
         default:
           console.error(`Unhandled item type '${dataItem.type}' at (x,y) = (${dataItem.x},${dataItem.y})`);
           throw new Error();
       }
     }
 
-    return new WorldItem({ sprite, x: dataItem.x, y: dataItem.y });
+    return new SceneItem({ sprite, x: dataItem.x, y: dataItem.y });
   }
 }

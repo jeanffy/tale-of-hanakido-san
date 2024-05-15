@@ -1,6 +1,6 @@
 import { DrawContext } from './draw-context.js';
 import { FrameRateIterator } from './utils/frame-rate-iterator.js';
-import { World } from './world/world.js';
+import { Scene } from './scene/scene.js';
 import { ControlState } from './control-state.js';
 
 const TARGET_FPS = 15;
@@ -9,7 +9,7 @@ export class Game {
   private controlState: ControlState;
   private frameRateIterator: FrameRateIterator;
 
-  public constructor(private world: World) {
+  public constructor(private scene: Scene) {
     this.controlState = {
       up: false,
       down: false,
@@ -22,8 +22,8 @@ export class Game {
   }
 
   public nextFrame(drawContext: DrawContext, dt: number): void {
-    this.world.processInputs(dt, this.controlState);
-    this.world.update(dt);
+    this.scene.processInputs(dt, this.controlState);
+    this.scene.update(dt);
 
     this.frameRateIterator.shouldRender(dt).then(shouldRender => {
       if (shouldRender) {
@@ -43,7 +43,7 @@ export class Game {
 
   private render(drawContext: DrawContext): void {
     try {
-      this.world.render(drawContext);
+      this.scene.render(drawContext);
       const fpsString = `FPS: ${this.frameRateIterator.fps}`;
       drawContext.writeText(fpsString, 5, 5, { horizontalAlign: 'left', verticalAlign: 'top' });
     } catch (error) {

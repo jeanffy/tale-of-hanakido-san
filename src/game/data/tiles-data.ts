@@ -16,7 +16,7 @@ export interface TileData {
 
 const assetsDir = 'assets';
 
-export const dataTiles: TileData[] = [
+export const tilesData: TileData[] = [
   { id: TileId.Debug01, url: `${assetsDir}/debug01.png` },
 
   { id: TileId.Grass0, url: `${assetsDir}/grass-empty.png` },

@@ -1,4 +1,4 @@
-import { TileId } from './data-tiles.js';
+import { TileId } from './tiles-data.js';
 
 export enum SpriteId {
   Debug01 = 'debug01',

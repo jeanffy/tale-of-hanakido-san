@@ -20,23 +20,24 @@ class FrameRateIterator {
 
 const TARGET_FPS = 15;
 class Game {
-    world;
+    scene;
     controlState;
     frameRateIterator;
-    constructor(world) {
-        this.world = world;
+    constructor(scene) {
+        this.scene = scene;
         this.controlState = {
             up: false,
             down: false,
             left: false,
             right: false,
+            control: false,
             action: false,
         };
         this.frameRateIterator = new FrameRateIterator({ targetFps: TARGET_FPS });
     }
     nextFrame(drawContext, dt) {
-        this.world.processInputs(dt, this.controlState);
-        this.world.update(dt);
+        this.scene.processInputs(dt, this.controlState);
+        this.scene.update(dt);
         this.frameRateIterator.shouldRender(dt).then(shouldRender => {
             if (shouldRender) {
                 this.render(drawContext);
@@ -48,11 +49,12 @@ class Game {
         this.controlState.down = state.down ?? this.controlState.down;
         this.controlState.left = state.left ?? this.controlState.left;
         this.controlState.right = state.right ?? this.controlState.right;
+        this.controlState.control = state.control ?? this.controlState.control;
         this.controlState.action = state.action ?? this.controlState.action;
     }
     render(drawContext) {
         try {
-            this.world.render(drawContext);
+            this.scene.render(drawContext);
             const fpsString = `FPS: ${this.frameRateIterator.fps}`;
             drawContext.writeText(fpsString, 5, 5, { horizontalAlign: 'left', verticalAlign: 'top' });
         }
@@ -62,25 +64,25 @@ class Game {
     }
 }
 
-class WorldCollider {
+class SceneCollider {
     items;
     constructor(items) {
         this.items = items;
     }
     anyItemCollidesWith(checkedItem, position) {
-        for (const worldItem of this.items) {
-            if (!worldItem.canCollide() || worldItem.uniqueId === checkedItem.uniqueId) {
+        for (const sceneItem of this.items) {
+            if (!sceneItem.canCollide() || sceneItem.uniqueId === checkedItem.uniqueId) {
                 continue;
             }
-            if (checkedItem.collidesWithOther(position, worldItem)) {
-                return worldItem;
+            if (checkedItem.collidesWithOther(position, sceneItem)) {
+                return sceneItem;
             }
         }
         return undefined;
     }
 }
 
-class World {
+class Scene {
     layer0;
     layer1;
     layer2;
@@ -91,10 +93,7 @@ class World {
         this.layer1 = layer1;
         this.layer2 = layer2;
         this.layer3 = layer3;
-        this.collider = new WorldCollider([
-            ...this.layer1,
-            ...this.layer2,
-        ]);
+        this.collider = new SceneCollider([...this.layer1, ...this.layer2]);
     }
     processInputs(dt, controlState) {
         this.layer2.forEach(item => item.processInputs(controlState));
@@ -104,7 +103,7 @@ class World {
     }
     render(drawContext) {
         this.layer0.forEach(item => item.render(drawContext));
-        const layers12Items = [...this.layer1, ...this.layer2].sort((a, b) => a.position.y - b.position.y);
+        const layers12Items = [...this.layer1, ...this.layer2].sort((a, b) => a.position.y + (a.hitBox?.h ?? 0) - (b.position.y + (b.hitBox?.h ?? 0)));
         layers12Items.forEach(item => item.render(drawContext));
         this.layer3.sort((a, b) => a.position.y - b.position.y);
         this.layer3.forEach(item => item.render(drawContext));
@@ -155,9 +154,6 @@ class GeomRect {
         this.y = y;
         this.w = w;
         this.h = h;
-    }
-    clone() {
-        return new GeomRect(this.x, this.y, this.w, this.h);
     }
     equals(other) {
         return this.x === other.x && this.y === other.y && this.w === other.w && this.h === other.h;
@@ -290,7 +286,7 @@ var TileId;
     TileId[TileId["Hero"] = 7] = "Hero";
 })(TileId || (TileId = {}));
 const assetsDir = 'assets';
-const dataTiles = [
+const tilesData = [
     { id: TileId.Debug01, url: `${assetsDir}/debug01.png` },
     { id: TileId.Grass0, url: `${assetsDir}/grass-empty.png` },
     { id: TileId.Grass1, url: `${assetsDir}/grass.png` },
@@ -311,45 +307,49 @@ var SpriteId;
     SpriteId["Book"] = "book";
     SpriteId["Plant"] = "plant";
     SpriteId["PlantOverlay"] = "plant-overlay";
-    SpriteId["HeroStillUp"] = "hero-still-up";
-    SpriteId["HeroStillDown"] = "hero-still-down";
-    SpriteId["HeroStillLeft"] = "hero-still-left";
-    SpriteId["HeroStillRight"] = "hero-still-right";
-    SpriteId["HeroWalkingUp"] = "hero-walking-up";
-    SpriteId["HeroWalkingDown"] = "hero-walking-down";
-    SpriteId["HeroWalkingLeft"] = "hero-walking-left";
-    SpriteId["HeroWalkingRight"] = "hero-walking-right";
+    SpriteId["Hero"] = "hero";
 })(SpriteId || (SpriteId = {}));
-const dataSprites = [
+var SpriteHeroState;
+(function (SpriteHeroState) {
+    SpriteHeroState["StillUp"] = "still-up";
+    SpriteHeroState["StillDown"] = "still-down";
+    SpriteHeroState["StillLeft"] = "still-left";
+    SpriteHeroState["StillRight"] = "still-right";
+    SpriteHeroState["WalkingUp"] = "walking-up";
+    SpriteHeroState["WalkingDown"] = "walking-down";
+    SpriteHeroState["WalkingLeft"] = "walking-left";
+    SpriteHeroState["WalkingRight"] = "walking-right";
+})(SpriteHeroState || (SpriteHeroState = {}));
+const spritesData = [
+    { id: SpriteId.Debug01, states: [{ tileId: TileId.Debug01, bbox: [100, 100, 250, 250], anchor: [0, -50] }], hitBox: [50, 50, 100, 100] },
+    { id: SpriteId.Grass0, states: [{ tileId: TileId.Grass0 }] },
+    { id: SpriteId.Grass1, states: [{ tileId: TileId.Grass1 }] },
+    { id: SpriteId.Bush, states: [{ tileId: TileId.Bush }], hitBox: [3, 3, 35, 35] },
+    { id: SpriteId.Chest, states: [{ tileId: TileId.Chest }], hitBox: [0, 0, 59, 41] },
+    { id: SpriteId.Book, states: [{ tileId: TileId.Book }], hitBox: 'bbox' },
+    { id: SpriteId.Plant, states: [{ tileId: TileId.Plant, bbox: [0, 51, 44, 86], anchor: [0, -51] }], hitBox: 'bbox', hitBoxAnchor: [0, -51] },
+    { id: SpriteId.PlantOverlay, states: [{ tileId: TileId.Plant, bbox: [0, 0, 44, 50] }] },
     {
-        id: SpriteId.Debug01,
-        tileId: TileId.Debug01,
-        bbox: [100, 100, 250, 250],
-        anchor: [0, -50],
-        hitBox: [50, 50, 100, 100],
-    },
-    { id: SpriteId.Grass0, tileId: TileId.Grass0 },
-    { id: SpriteId.Grass1, tileId: TileId.Grass1 },
-    { id: SpriteId.Bush, tileId: TileId.Bush, hitBox: [3, 3, 35, 35] },
-    { id: SpriteId.Chest, tileId: TileId.Chest, hitBox: [0, 0, 59, 41] },
-    { id: SpriteId.Book, tileId: TileId.Book, hitBox: 'bbox' },
-    { id: SpriteId.Plant, tileId: TileId.Plant, bbox: [0, 51, 44, 86], hitBox: 'bbox', anchor: [0, -51] },
-    { id: SpriteId.PlantOverlay, tileId: TileId.Plant, bbox: [0, 0, 44, 50] },
-    { id: SpriteId.HeroStillUp, tileId: TileId.Hero, bbox: [0, 66, 44, 134], hitBox: [5, 15, 35, 65] },
-    { id: SpriteId.HeroStillDown, tileId: TileId.Hero, bbox: [0, 0, 45, 66], hitBox: [5, 15, 35, 65] },
-    { id: SpriteId.HeroStillLeft, tileId: TileId.Hero, bbox: [3, 135, 41, 200], hitBox: [5, 15, 35, 65] },
-    { id: SpriteId.HeroStillRight, tileId: TileId.Hero, bbox: [3, 201, 41, 266], hitBox: [5, 15, 35, 65] },
-    { id: SpriteId.HeroWalkingUp, tileId: TileId.Hero, bbox: [0, 66, 44, 134], hitBox: [5, 15, 35, 65], frames: 4 },
-    { id: SpriteId.HeroWalkingDown, tileId: TileId.Hero, bbox: [0, 0, 44, 65], hitBox: [5, 15, 35, 65], frames: 4 },
-    { id: SpriteId.HeroWalkingLeft, tileId: TileId.Hero, bbox: [3, 135, 41, 200], hitBox: [5, 15, 35, 65], frames: 4 },
-    { id: SpriteId.HeroWalkingRight, tileId: TileId.Hero, bbox: [3, 201, 41, 266], hitBox: [5, 15, 35, 65], frames: 4 },
+        id: SpriteId.Hero,
+        states: [
+            { label: SpriteHeroState.StillUp, tileId: TileId.Hero, bbox: [0, 66, 44, 134] },
+            { label: SpriteHeroState.StillDown, tileId: TileId.Hero, bbox: [0, 0, 45, 66] },
+            { label: SpriteHeroState.StillLeft, tileId: TileId.Hero, bbox: [3, 135, 41, 200] },
+            { label: SpriteHeroState.StillRight, tileId: TileId.Hero, bbox: [3, 201, 41, 266] },
+            { label: SpriteHeroState.WalkingUp, tileId: TileId.Hero, bbox: [0, 66, 44, 134], frames: 4 },
+            { label: SpriteHeroState.WalkingDown, tileId: TileId.Hero, bbox: [0, 0, 44, 65], frames: 4 },
+            { label: SpriteHeroState.WalkingLeft, tileId: TileId.Hero, bbox: [3, 135, 41, 200], frames: 4 },
+            { label: SpriteHeroState.WalkingRight, tileId: TileId.Hero, bbox: [3, 201, 41, 266], frames: 4 },
+        ],
+        hitBox: [5, 30, 35, 65],
+    }
 ];
 
-var WorldDataItemType;
-(function (WorldDataItemType) {
-    WorldDataItemType[WorldDataItemType["Hero"] = 0] = "Hero";
-})(WorldDataItemType || (WorldDataItemType = {}));
-const dataWorld = {
+var SceneDataItemType;
+(function (SceneDataItemType) {
+    SceneDataItemType[SceneDataItemType["Hero"] = 0] = "Hero";
+})(SceneDataItemType || (SceneDataItemType = {}));
+const sceneData = {
     layer0: [
         { spriteId: SpriteId.Grass0, x: 150, y: 250 },
         { spriteId: SpriteId.Grass1, x: 189, y: 250 },
@@ -364,7 +364,7 @@ const dataWorld = {
         { spriteId: SpriteId.Book, x: 300, y: 100 },
     ],
     layer2: [
-        { type: WorldDataItemType.Hero, x: 50, y: 100 }
+        { spriteId: SpriteId.Hero, type: SceneDataItemType.Hero, x: 50, y: 100 }
     ],
     layer3: [
         { spriteId: SpriteId.PlantOverlay, x: 150, y: 100 },
@@ -388,15 +388,13 @@ function getRandomId() {
     return btoa(`${Math.random() * 99999}`);
 }
 
-class WorldItem {
+class SceneItem {
     uniqueId;
     sprite;
     position;
     constructor(params) {
         this.uniqueId = getRandomId();
-        if (params.sprite !== undefined) {
-            this.sprite = params.sprite;
-        }
+        this.sprite = params.sprite;
         this.position = new GeomPoint(params.x, params.y);
     }
     canCollide() {
@@ -404,6 +402,12 @@ class WorldItem {
     }
     collidesWithOther(position, item) {
         return this.sprite.collidesWithOther(position, item.sprite, item.position);
+    }
+    get bbox() {
+        return this.sprite.bbox;
+    }
+    get hitBox() {
+        return this.sprite.hitBox;
     }
     processInputs(controlState) { }
     update(dt, collider) {
@@ -434,72 +438,53 @@ class GeomVector {
     }
 }
 
-var HeroState;
-(function (HeroState) {
-    HeroState[HeroState["Still"] = 0] = "Still";
-    HeroState[HeroState["Walking"] = 1] = "Walking";
-})(HeroState || (HeroState = {}));
-class WorldHero extends WorldItem {
-    stillSpriteUp;
-    stillSpriteDown;
-    stillSpriteLeft;
-    stillSpriteRight;
-    stillSprite;
-    runningUpSprite;
-    runningDownSprite;
-    runningLeftSprite;
-    runningRightSprite;
+const SPEED_WALKING = 0.1;
+const SPEED_RUNNING = 0.2;
+class SceneHero extends SceneItem {
     movingDirectionX;
     movingDirectionY;
     state;
-    speed = 0.15;
-    constructor(spriteManager, params) {
+    speed = SPEED_WALKING;
+    constructor(params) {
         super(params);
-        this.stillSpriteUp = spriteManager.getSprite(SpriteId.HeroStillUp);
-        this.stillSpriteDown = spriteManager.getSprite(SpriteId.HeroStillDown);
-        this.stillSpriteLeft = spriteManager.getSprite(SpriteId.HeroStillLeft);
-        this.stillSpriteRight = spriteManager.getSprite(SpriteId.HeroStillRight);
-        this.runningUpSprite = spriteManager.getSprite(SpriteId.HeroWalkingUp);
-        this.runningDownSprite = spriteManager.getSprite(SpriteId.HeroWalkingDown);
-        this.runningLeftSprite = spriteManager.getSprite(SpriteId.HeroWalkingLeft);
-        this.runningRightSprite = spriteManager.getSprite(SpriteId.HeroWalkingRight);
-        this.sprite = this.selectSprite();
-        this.state = HeroState.Still;
+        this.state = SpriteHeroState.StillDown;
         this.movingDirectionX = 0;
         this.movingDirectionY = 0;
-        this.stillSprite = this.stillSpriteDown;
     }
     processInputs(controlState) {
         super.processInputs(controlState);
-        this.state = HeroState.Still;
+        this.state = SpriteHeroState.StillDown;
         this.movingDirectionX = 0;
         if (controlState.left) {
             this.movingDirectionX = -1;
-            this.state = HeroState.Walking;
-            this.stillSprite = this.stillSpriteLeft;
+            this.state = SpriteHeroState.WalkingLeft;
         }
         else if (controlState.right) {
             this.movingDirectionX = 1;
-            this.state = HeroState.Walking;
-            this.stillSprite = this.stillSpriteRight;
+            this.state = SpriteHeroState.WalkingRight;
         }
         this.movingDirectionY = 0;
         if (controlState.up) {
             this.movingDirectionY = -1;
-            this.state = HeroState.Walking;
-            this.stillSprite = this.stillSpriteUp;
+            this.state = SpriteHeroState.WalkingUp;
         }
         else if (controlState.down) {
             this.movingDirectionY = 1;
-            this.state = HeroState.Walking;
-            this.stillSprite = this.stillSpriteDown;
+            this.state = SpriteHeroState.WalkingDown;
+        }
+        this.sprite.selectState(this.state);
+        this.speed = controlState.control ? SPEED_RUNNING : SPEED_WALKING;
+        if (controlState.action) {
+            console.log('ACTION');
         }
     }
     update(dt, collider) {
-        this.sprite = this.selectSprite();
         super.update(dt, collider);
         switch (this.state) {
-            case HeroState.Walking:
+            case SpriteHeroState.WalkingUp:
+            case SpriteHeroState.WalkingDown:
+            case SpriteHeroState.WalkingLeft:
+            case SpriteHeroState.WalkingRight:
                 this.handleWalk(dt, new GeomVector(this.movingDirectionX, 0), collider);
                 this.handleWalk(dt, new GeomVector(0, this.movingDirectionY), collider);
                 break;
@@ -507,27 +492,6 @@ class WorldHero extends WorldItem {
     }
     render(drawContext) {
         super.render(drawContext);
-    }
-    selectSprite() {
-        let sprite;
-        if (this.state === HeroState.Walking) {
-            if (this.movingDirectionY < 0) {
-                sprite = this.runningUpSprite;
-            }
-            else if (this.movingDirectionY > 0) {
-                sprite = this.runningDownSprite;
-            }
-            if (this.movingDirectionX < 0) {
-                sprite = this.runningLeftSprite;
-            }
-            else if (this.movingDirectionX > 0) {
-                sprite = this.runningRightSprite;
-            }
-        }
-        if (sprite === undefined) {
-            sprite = this.stillSprite;
-        }
-        return sprite;
     }
     handleWalk(dt, direction, collider) {
         const moveDirection = direction.scale(this.speed * dt);
@@ -539,31 +503,29 @@ class WorldHero extends WorldItem {
     }
 }
 
-class Sprite {
-    id;
+class SpriteState {
+    label;
     tile;
-    bbox;
+    _bbox;
     anchor;
-    hitBox;
     frames;
     delay;
     firstFrameBBoxX;
     currentFrame;
     millisecBeforeNextFrame;
-    constructor(id, tile, bbox, anchor, hitBox, frames, delay) {
-        this.id = id;
+    constructor(label, tile, _bbox, anchor, frames, delay) {
+        this.label = label;
         this.tile = tile;
-        this.bbox = bbox;
+        this._bbox = _bbox;
         this.anchor = anchor;
-        this.hitBox = hitBox;
         this.frames = frames;
         this.delay = delay;
-        this.firstFrameBBoxX = this.bbox.x;
+        this.firstFrameBBoxX = this._bbox.x;
         this.currentFrame = 0;
         this.millisecBeforeNextFrame = this.delay;
     }
-    hasHitBox() {
-        return this.hitBox !== undefined;
+    get bbox() {
+        return this._bbox;
     }
     update(dt) {
         if (this.frames > 1) {
@@ -574,23 +536,63 @@ class Sprite {
                 if (this.currentFrame >= this.frames) {
                     this.currentFrame = 0;
                 }
-                this.bbox.x = this.firstFrameBBoxX + this.currentFrame * this.bbox.w;
+                this._bbox.x = this.firstFrameBBoxX + this.currentFrame * this._bbox.w;
             }
         }
     }
     render(drawContext, position) {
-        this.tile.render(drawContext, this.bbox, position.moveByVector(new GeomVector(-this.anchor.x, -this.anchor.y)));
-        if (this.hitBox instanceof GeomRect) {
-            drawContext.strokeRect(position.x - this.anchor.x + this.hitBox.x, position.y - this.anchor.y + this.hitBox.y, this.hitBox.w, this.hitBox.h, {
+        this.tile.render(drawContext, this._bbox, position.moveByVector(new GeomVector(-this.anchor.x, -this.anchor.y)));
+    }
+}
+class Sprite {
+    id;
+    states;
+    _hitBox;
+    hitBoxAnchor;
+    currentState;
+    constructor(id, states, _hitBox, hitBoxAnchor) {
+        this.id = id;
+        this.states = states;
+        this._hitBox = _hitBox;
+        this.hitBoxAnchor = hitBoxAnchor;
+        if (states.length < 1) {
+            console.error('Sprite states must have at least 1 state');
+            throw new Error('');
+        }
+        this.currentState = this.states[0];
+    }
+    get bbox() {
+        return this.currentState.bbox;
+    }
+    get hitBox() {
+        return this._hitBox;
+    }
+    hasHitBox() {
+        return this._hitBox !== undefined;
+    }
+    selectState(label) {
+        this.currentState = this.states[0];
+        const state = this.states.find(s => s.label === label);
+        if (state !== undefined) {
+            this.currentState = state;
+        }
+    }
+    update(dt) {
+        this.currentState.update(dt);
+    }
+    render(drawContext, position) {
+        this.currentState.render(drawContext, position);
+        if (this._hitBox instanceof GeomRect) {
+            drawContext.strokeRect(position.x - (this.hitBoxAnchor?.x ?? 0) + this._hitBox.x, position.y - (this.hitBoxAnchor?.y ?? 0) + this._hitBox.y, this._hitBox.w, this._hitBox.h, {
                 color: 'lightgreen',
             });
         }
     }
     collidesWithOther(position, other, otherPosition) {
-        if (this.hitBox instanceof GeomRect) {
-            const thisHitBox = new GeomRect(position.x - this.anchor.x + this.hitBox.x, position.y - this.anchor.y + this.hitBox.y, this.hitBox.w, this.hitBox.h);
-            if (other.hitBox instanceof GeomRect) {
-                const otherHitBox = new GeomRect(otherPosition.x - other.anchor.x + other.hitBox.x, otherPosition.y - other.anchor.y + other.hitBox.y, other.hitBox.w, other.hitBox.h);
+        if (this._hitBox instanceof GeomRect) {
+            const thisHitBox = new GeomRect(position.x - (this.hitBoxAnchor?.x ?? 0) + this._hitBox.x, position.y - (this.hitBoxAnchor?.y ?? 0) + this._hitBox.y, this._hitBox.w, this._hitBox.h);
+            if (other._hitBox instanceof GeomRect) {
+                const otherHitBox = new GeomRect(otherPosition.x - (other.hitBoxAnchor?.x ?? 0) + other._hitBox.x, otherPosition.y - (other.hitBoxAnchor?.y ?? 0) + other._hitBox.y, other._hitBox.w, other._hitBox.h);
                 return thisHitBox.intersectsWithRect(otherHitBox);
             }
         }
@@ -599,56 +601,60 @@ class Sprite {
 }
 
 class SpriteManager {
-    dataSprites;
+    spritesData;
     tileManager;
     sprites = new Map();
-    constructor(dataSprites, tileManager) {
-        this.dataSprites = dataSprites;
+    constructor(spritesData, tileManager) {
+        this.spritesData = spritesData;
         this.tileManager = tileManager;
     }
     getSprite(id) {
-        const spriteData = this.dataSprites.find(s => s.id === id);
+        const spriteData = this.spritesData.find(s => s.id === id);
         if (spriteData === undefined) {
             console.error(`No sprite data for id '${id}'`);
             throw new Error();
         }
-        switch (id) {
-            case SpriteId.HeroWalkingDown:
-                return this.createSprite(spriteData);
-            default:
-                let sprite = this.sprites.get(id);
-                if (sprite === undefined) {
-                    sprite = this.createSprite(spriteData);
-                }
-                return sprite;
+        let sprite = this.sprites.get(id);
+        if (sprite === undefined) {
+            sprite = this.createSprite(spriteData);
         }
+        return sprite;
     }
     createSprite(spriteData) {
-        const tile = this.tileManager.getTile(spriteData.tileId);
-        let bbox;
-        if (spriteData.bbox !== undefined) {
-            bbox = new GeomRect(spriteData.bbox[0], spriteData.bbox[1], spriteData.bbox[2] - spriteData.bbox[0] + 1, spriteData.bbox[3] - spriteData.bbox[1] + 1);
-        }
-        else {
-            bbox = tile.imageBBox;
+        const states = [];
+        for (const state of spriteData.states) {
+            const tile = this.tileManager.getTile(state.tileId);
+            let bbox;
+            if (state.bbox !== undefined) {
+                bbox = new GeomRect(state.bbox[0], state.bbox[1], state.bbox[2] - state.bbox[0] + 1, state.bbox[3] - state.bbox[1] + 1);
+            }
+            else {
+                bbox = tile.imageBBox;
+            }
+            let anchor;
+            if (state.anchor !== undefined) {
+                anchor = new GeomPoint(state.anchor[0], state.anchor[1]);
+            }
+            else {
+                anchor = new GeomPoint(0, 0);
+            }
+            states.push(new SpriteState(state.label, tile, bbox, anchor, state.frames ?? 1, state.delay ?? 100));
         }
         let hitBox;
         if (spriteData.hitBox !== undefined) {
             if (spriteData.hitBox === 'bbox') {
+                const bbox = states[0].bbox;
                 hitBox = new GeomRect(0, 0, bbox.w, bbox.h);
             }
             else {
                 hitBox = new GeomRect(spriteData.hitBox[0], spriteData.hitBox[1], spriteData.hitBox[2] - spriteData.hitBox[0] + 1, spriteData.hitBox[3] - spriteData.hitBox[1] + 1);
             }
         }
-        let anchor;
-        if (spriteData.anchor !== undefined) {
-            anchor = new GeomPoint(spriteData.anchor[0], spriteData.anchor[1]);
+        let hitBoxAnchor;
+        if (spriteData.hitBoxAnchor !== undefined) {
+            hitBoxAnchor = new GeomPoint(spriteData.hitBoxAnchor[0], spriteData.hitBoxAnchor[1]);
         }
-        else {
-            anchor = new GeomPoint(0, 0);
-        }
-        return new Sprite(spriteData.id, tile, bbox, anchor, hitBox, spriteData.frames ?? 1, spriteData.delay ?? 100);
+        return new Sprite(spriteData.id, states, hitBox, hitBoxAnchor);
     }
 }
 
@@ -656,7 +662,7 @@ class Factory {
     tileManager;
     spriteManager;
     game;
-    world;
+    scene;
     getTileManager() {
         if (this.tileManager === undefined) {
             this.tileManager = new TileManager();
@@ -665,38 +671,34 @@ class Factory {
     }
     getSpriteManager() {
         if (this.spriteManager === undefined) {
-            this.spriteManager = new SpriteManager(dataSprites, this.getTileManager());
+            this.spriteManager = new SpriteManager(spritesData, this.getTileManager());
         }
         return this.spriteManager;
     }
-    getGame(world) {
+    getGame(scene) {
         if (this.game === undefined) {
-            this.game = new Game(world);
+            this.game = new Game(scene);
         }
         return this.game;
     }
-    getWorld(worldData) {
-        if (this.world === undefined) {
-            this.world = new World(worldData.layer0.map(item => this.createWorldItem(this.getSpriteManager(), item)), worldData.layer1.map(item => this.createWorldItem(this.getSpriteManager(), item)), worldData.layer2.map(item => this.createWorldItem(this.getSpriteManager(), item)), worldData.layer3.map(item => this.createWorldItem(this.getSpriteManager(), item)));
+    getScene(sceneData) {
+        if (this.scene === undefined) {
+            this.scene = new Scene(sceneData.layer0.map(item => this.createSceneItem(this.getSpriteManager(), item)), sceneData.layer1.map(item => this.createSceneItem(this.getSpriteManager(), item)), sceneData.layer2.map(item => this.createSceneItem(this.getSpriteManager(), item)), sceneData.layer3.map(item => this.createSceneItem(this.getSpriteManager(), item)));
         }
-        return this.world;
+        return this.scene;
     }
-    createWorldItem(spriteManager, dataItem) {
+    createSceneItem(spriteManager, dataItem) {
+        const sprite = spriteManager.getSprite(dataItem.spriteId);
         if (dataItem.type !== undefined) {
             switch (dataItem.type) {
-                case WorldDataItemType.Hero:
-                    return new WorldHero(spriteManager, { x: dataItem.x, y: dataItem.y });
+                case SceneDataItemType.Hero:
+                    return new SceneHero({ sprite, x: dataItem.x, y: dataItem.y });
                 default:
                     console.error(`Unhandled item type '${dataItem.type}' at (x,y) = (${dataItem.x},${dataItem.y})`);
                     throw new Error();
             }
         }
-        if (dataItem.spriteId !== undefined) {
-            const sprite = spriteManager.getSprite(dataItem.spriteId);
-            return new WorldItem({ sprite, x: dataItem.x, y: dataItem.y });
-        }
-        console.error(`No spriteId nor type for at (x,y) = (${dataItem.x},${dataItem.y})`);
-        throw new Error();
+        return new SceneItem({ sprite, x: dataItem.x, y: dataItem.y });
     }
 }
 
@@ -769,9 +771,140 @@ class CanvasDrawContext {
 
 const SCREEN_WIDTH = 500;
 const SCREEN_HEIGHT = 500;
-const factory = new Factory();
-let game;
-let drawContext;
+class App {
+    canvas;
+    drawContext;
+    lastTimestamp;
+    _game;
+    animationRunning = true;
+    constructor(canvas, drawContext) {
+        this.canvas = canvas;
+        this.drawContext = drawContext;
+    }
+    get game() {
+        return this._game;
+    }
+    get isAnimationRunning() {
+        return this.animationRunning;
+    }
+    async start(factory) {
+        this.canvas.width = SCREEN_WIDTH;
+        this.canvas.height = SCREEN_HEIGHT;
+        const tileManager = factory.getTileManager();
+        await tileManager.loadTiles(tilesData);
+        const scene = factory.getScene(sceneData);
+        this._game = factory.getGame(scene);
+        this.setupControls();
+        window.requestAnimationFrame(this.gameLoop.bind(this));
+    }
+    enableAnimation(enabled) {
+        this.animationRunning = enabled;
+        if (this.animationRunning) {
+            window.requestAnimationFrame(this.gameLoop.bind(this));
+        }
+    }
+    goToNextFrame(dt) {
+        this.drawBackground();
+        this._game.nextFrame(this.drawContext, dt);
+        this._game.updateControlState({ action: false });
+    }
+    gameLoop(timestamp) {
+        this.lastTimestamp = this.lastTimestamp ?? timestamp;
+        const dt = timestamp - this.lastTimestamp;
+        this.lastTimestamp = timestamp;
+        this.goToNextFrame(dt);
+        if (this.animationRunning) {
+            window.requestAnimationFrame(this.gameLoop.bind(this));
+        }
+    }
+    drawBackground() {
+        this.drawContext.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, { color: '#999' });
+        for (let i = 50; i < SCREEN_WIDTH; i += 50) {
+            this.drawContext.strokeRect(i, 0, 50, SCREEN_WIDTH, { color: 'black' });
+        }
+        for (let i = 25; i < SCREEN_WIDTH; i += 25) {
+            this.drawContext.strokeRect(i, 0, 25, SCREEN_WIDTH, { color: '#888' });
+        }
+        for (let j = 50; j < SCREEN_HEIGHT; j += 50) {
+            this.drawContext.strokeRect(0, j, SCREEN_HEIGHT, 50, { color: 'black' });
+        }
+        for (let j = 25; j < SCREEN_HEIGHT; j += 25) {
+            this.drawContext.strokeRect(0, j, SCREEN_HEIGHT, 25, { color: '#888' });
+        }
+    }
+    setupControls() {
+        window.addEventListener('keydown', (event) => {
+            switch (event.code.toLowerCase()) {
+                case 'arrowup':
+                    this.game.updateControlState({ up: true });
+                    event.preventDefault();
+                    break;
+                case 'arrowdown':
+                    this.game.updateControlState({ down: true });
+                    event.preventDefault();
+                    break;
+                case 'arrowleft':
+                    this.game.updateControlState({ left: true });
+                    event.preventDefault();
+                    break;
+                case 'arrowright':
+                    this.game.updateControlState({ right: true });
+                    event.preventDefault();
+                    break;
+                case 'keyz':
+                    this.game.updateControlState({ control: true });
+                    event.preventDefault();
+                    break;
+            }
+        });
+        window.addEventListener('keyup', (event) => {
+            switch (event.code.toLowerCase()) {
+                case 'arrowup':
+                    this.game.updateControlState({ up: false });
+                    event.preventDefault();
+                    break;
+                case 'arrowdown':
+                    this.game.updateControlState({ down: false });
+                    event.preventDefault();
+                    break;
+                case 'arrowleft':
+                    this.game.updateControlState({ left: false });
+                    event.preventDefault();
+                    break;
+                case 'arrowright':
+                    this.game.updateControlState({ right: false });
+                    event.preventDefault();
+                    break;
+                case 'keyz':
+                    this.game.updateControlState({ control: false });
+                    event.preventDefault();
+                    break;
+                case 'keyx':
+                    this.game.updateControlState({ action: true });
+                    event.preventDefault();
+                    break;
+            }
+        });
+    }
+}
+
+class UI {
+    gameApp;
+    stopButton = document.getElementById('ui-btn-stop');
+    startButton = document.getElementById('ui-btn-start');
+    stepButton = document.getElementById('ui-btn-step');
+    constructor(gameApp) {
+        this.gameApp = gameApp;
+        this.update();
+    }
+    update() {
+        this.stopButton.style.display = this.gameApp.isAnimationRunning ? 'unset' : 'none';
+        this.startButton.style.display = this.gameApp.isAnimationRunning ? 'none' : 'unset';
+    }
+}
+
+let app;
+let ui;
 async function bootstrap() {
     const canvasDiv = document.getElementById('canvas') ?? undefined;
     if (canvasDiv === undefined) {
@@ -783,95 +916,28 @@ async function bootstrap() {
         console.error('no context in canvas');
         return;
     }
-    drawContext = new CanvasDrawContext(context);
-    canvasDiv.width = SCREEN_WIDTH;
-    canvasDiv.height = SCREEN_HEIGHT;
-    const tileManager = factory.getTileManager();
-    await tileManager.loadTiles(dataTiles);
-    const world = factory.getWorld(dataWorld);
-    game = factory.getGame(world);
-    window.requestAnimationFrame(gameLoop);
+    const drawContext = new CanvasDrawContext(context);
+    app = new App(canvasDiv, drawContext);
+    ui = new UI(app);
+    ui.stopButton.addEventListener('click', onStopAnimate);
+    ui.startButton.addEventListener('click', onStartAnimate);
+    ui.stepButton.addEventListener('click', onStepAnimate);
+    const factory = new Factory();
+    await app.start(factory);
 }
-let lastTimestamp;
-function gameLoop(timestamp) {
-    if (drawContext === undefined) {
-        console.error(`${gameLoop.name}: no drawContext`);
-        return;
-    }
-    if (game === undefined) {
-        console.error(`${gameLoop.name}: no game`);
-        return;
-    }
-    lastTimestamp = lastTimestamp ?? timestamp;
-    const dt = timestamp - lastTimestamp;
-    lastTimestamp = timestamp;
-    drawContext.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, { color: '#999' });
-    drawContext.strokeRect(0, 0, 400, 400, { color: 'black' });
-    for (let i = 50; i < SCREEN_WIDTH; i += 50) {
-        drawContext.strokeRect(i, 0, 50, SCREEN_WIDTH, { color: 'black' });
-    }
-    for (let i = 25; i < SCREEN_WIDTH; i += 25) {
-        drawContext.strokeRect(i, 0, 25, SCREEN_WIDTH, { color: '#888' });
-    }
-    for (let j = 50; j < SCREEN_HEIGHT; j += 50) {
-        drawContext.strokeRect(0, j, SCREEN_HEIGHT, 50, { color: 'black' });
-    }
-    for (let j = 25; j < SCREEN_HEIGHT; j += 25) {
-        drawContext.strokeRect(0, j, SCREEN_HEIGHT, 25, { color: '#888' });
-    }
-    game.nextFrame(drawContext, dt);
-    game.updateControlState({ action: false });
-    window.requestAnimationFrame(gameLoop);
+function onStopAnimate(event) {
+    app?.enableAnimation(false);
+    ui?.update();
 }
-window.addEventListener('keydown', (event) => {
-    if (game === undefined) {
-        return;
-    }
-    switch (event.code) {
-        case 'ArrowUp':
-            game.updateControlState({ up: true });
-            event.preventDefault();
-            break;
-        case 'ArrowDown':
-            game.updateControlState({ down: true });
-            event.preventDefault();
-            break;
-        case 'ArrowLeft':
-            game.updateControlState({ left: true });
-            event.preventDefault();
-            break;
-        case 'ArrowRight':
-            game.updateControlState({ right: true });
-            event.preventDefault();
-            break;
-    }
-});
-window.addEventListener('keyup', (event) => {
-    if (game === undefined) {
-        return;
-    }
-    switch (event.code) {
-        case 'ArrowUp':
-            game.updateControlState({ up: false });
-            event.preventDefault();
-            break;
-        case 'ArrowDown':
-            game.updateControlState({ down: false });
-            event.preventDefault();
-            break;
-        case 'ArrowLeft':
-            game.updateControlState({ left: false });
-            event.preventDefault();
-            break;
-        case 'ArrowRight':
-            game.updateControlState({ right: false });
-            event.preventDefault();
-            break;
-        case 'Space':
-            game.updateControlState({ action: true });
-            event.preventDefault();
-            break;
-    }
-});
+function onStartAnimate(event) {
+    app?.enableAnimation(true);
+    ui?.update();
+}
+function onStepAnimate(event) {
+    app?.goToNextFrame(13);
+    ui?.update();
+}
 bootstrap();
+
+export { onStartAnimate, onStepAnimate, onStopAnimate };
 //# sourceMappingURL=index.js.map

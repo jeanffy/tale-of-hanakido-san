@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 
-export function copyIndexHtml() {
+export function copyIndex() {
   return {
     name: 'copy-index-html',
     closeBundle() {
@@ -10,16 +10,6 @@ export function copyIndexHtml() {
       fs.mkdirSync(outputDir, { recursive: true });
       console.log(`src/index.html -> ${outputDir}/index.html`);
       fs.copyFileSync('src/index.html', `${outputDir}/index.html`);
-    }
-  };
-}
-
-export function copyIndexCss() {
-  return {
-    name: 'copy-index-css',
-    closeBundle() {
-      const outputDir = 'docs';
-      fs.mkdirSync(outputDir, { recursive: true });
       console.log(`src/index.css -> ${outputDir}/index.css`);
       fs.copyFileSync('src/index.css', `${outputDir}/index.css`);
     }

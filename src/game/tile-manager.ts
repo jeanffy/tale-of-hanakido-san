@@ -1,4 +1,4 @@
-import { TileData, TileId } from './data/data-tiles.js';
+import { TileData, TileId } from './data/tiles-data.js';
 import { Tile } from './tile.js';
 
 export class TileManager {

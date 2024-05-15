@@ -1,25 +1,25 @@
-import { SpriteId } from './data-sprites.js';
+import { SpriteId } from './sprites-data.js';
 
-export enum WorldDataItemType {
+export enum SceneDataItemType {
   Hero,
 }
 
-export interface WorldDataLayerItem {
+export interface SceneDataLayerItem {
   spriteId: SpriteId;
-  type?: WorldDataItemType;
+  type?: SceneDataItemType;
   // (x,y) = position (top-left corner of sprite)
   x: number;
   y: number;
 }
 
-export interface WorldData {
-  layer0: WorldDataLayerItem[];
-  layer1: WorldDataLayerItem[];
-  layer2: WorldDataLayerItem[];
-  layer3: WorldDataLayerItem[];
+export interface SceneData {
+  layer0: SceneDataLayerItem[];
+  layer1: SceneDataLayerItem[];
+  layer2: SceneDataLayerItem[];
+  layer3: SceneDataLayerItem[];
 }
 
-export const dataWorld: WorldData = {
+export const sceneData: SceneData = {
   layer0: [
     { spriteId: SpriteId.Grass0, x: 150, y: 250 },
     { spriteId: SpriteId.Grass1, x: 189, y: 250 },
@@ -35,7 +35,7 @@ export const dataWorld: WorldData = {
     { spriteId: SpriteId.Book, x: 300, y: 100 },
   ],
   layer2: [
-    { spriteId: SpriteId.Hero, type: WorldDataItemType.Hero, x: 50, y: 100 }
+    { spriteId: SpriteId.Hero, type: SceneDataItemType.Hero, x: 50, y: 100 }
   ],
   layer3: [
     { spriteId: SpriteId.PlantOverlay, x: 150, y: 100 },

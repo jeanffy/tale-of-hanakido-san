@@ -1,7 +1,7 @@
 import { DrawContext } from './draw-context.js';
 import { GeomRect } from './geom/geom-rect.js';
 import { GeomPoint } from './geom/geom-point.js';
-import { TileId } from './data/data-tiles.js';
+import { TileId } from './data/tiles-data.js';
 
 export class Tile {
   public imageBBox: GeomRect;
