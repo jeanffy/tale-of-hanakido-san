@@ -64,52 +64,6 @@ class Game {
     }
 }
 
-class SceneCollider {
-    items;
-    constructor(items) {
-        this.items = items;
-    }
-    anyItemCollidesWith(checkedItem, position) {
-        for (const sceneItem of this.items) {
-            if (!sceneItem.canCollide() || sceneItem.uniqueId === checkedItem.uniqueId) {
-                continue;
-            }
-            if (checkedItem.collidesWithOther(position, sceneItem)) {
-                return sceneItem;
-            }
-        }
-        return undefined;
-    }
-}
-
-class Scene {
-    layer0;
-    layer1;
-    layer2;
-    layer3;
-    collider;
-    constructor(layer0, layer1, layer2, layer3) {
-        this.layer0 = layer0;
-        this.layer1 = layer1;
-        this.layer2 = layer2;
-        this.layer3 = layer3;
-        this.collider = new SceneCollider([...this.layer1, ...this.layer2]);
-    }
-    processInputs(dt, controlState) {
-        this.layer2.forEach(item => item.processInputs(controlState));
-    }
-    update(dt) {
-        this.layer2.forEach(item => item.update(dt, this.collider));
-    }
-    render(drawContext) {
-        this.layer0.forEach(item => item.render(drawContext));
-        const layers12Items = [...this.layer1, ...this.layer2].sort((a, b) => a.position.y + (a.hitBox?.h ?? 0) - (b.position.y + (b.hitBox?.h ?? 0)));
-        layers12Items.forEach(item => item.render(drawContext));
-        this.layer3.sort((a, b) => a.position.y - b.position.y);
-        this.layer3.forEach(item => item.render(drawContext));
-    }
-}
-
 var Intersections;
 (function (Intersections) {
     function rectIntersectsWithRect(r1, r2) {
@@ -166,6 +120,63 @@ class GeomRect {
     }
     intersectsWithCircle(circle) {
         return Intersections.rectIntersectsWithCircle(this, circle);
+    }
+}
+
+class SceneCollider {
+    items;
+    constructor(items) {
+        this.items = items;
+    }
+    anyItemCollidesWith(checkedItem, position, options) {
+        for (const sceneItem of this.items) {
+            if (!sceneItem.canCollide() || sceneItem.uniqueId === checkedItem.uniqueId) {
+                continue;
+            }
+            if (this.checkCollision(checkedItem.sprite, position, sceneItem.sprite, sceneItem.position, options?.tolerance ?? 0)) {
+                return sceneItem;
+            }
+        }
+        return undefined;
+    }
+    checkCollision(sprite1, position1, sprite2, position2, tolerance) {
+        if (sprite1.hitBox instanceof GeomRect) {
+            const hitBox1 = new GeomRect(position1.x - (sprite1.hitBoxAnchor?.x ?? 0) + sprite1.hitBox.x - tolerance, position1.y - (sprite1.hitBoxAnchor?.y ?? 0) + sprite1.hitBox.y - tolerance, sprite1.hitBox.w + tolerance, sprite1.hitBox.h + tolerance);
+            if (sprite2.hitBox instanceof GeomRect) {
+                const hitBox2 = new GeomRect(position2.x - (sprite2.hitBoxAnchor?.x ?? 0) + sprite2.hitBox.x - tolerance, position2.y - (sprite2.hitBoxAnchor?.y ?? 0) + sprite2.hitBox.y - tolerance, sprite2.hitBox.w + tolerance, sprite2.hitBox.h + tolerance);
+                return hitBox1.intersectsWithRect(hitBox2);
+            }
+        }
+        return false;
+    }
+}
+
+class Scene {
+    layer0;
+    layer1;
+    layer2;
+    layer3;
+    collider;
+    constructor(layer0, layer1, layer2, layer3) {
+        this.layer0 = layer0;
+        this.layer1 = layer1;
+        this.layer2 = layer2;
+        this.layer3 = layer3;
+        this.collider = new SceneCollider([...this.layer1, ...this.layer2]);
+    }
+    processInputs(dt, controlState) {
+        this.layer2.forEach(item => item.processInputs(controlState, this.collider));
+    }
+    update(dt) {
+        this.layer1.forEach(item => item.update(dt, this.collider));
+        this.layer2.forEach(item => item.update(dt, this.collider));
+    }
+    render(drawContext) {
+        this.layer0.forEach(item => item.render(drawContext));
+        const layers12Items = [...this.layer1, ...this.layer2].sort((a, b) => a.position.y + (a.hitBox?.h ?? 0) - (b.position.y + (b.hitBox?.h ?? 0)));
+        layers12Items.forEach(item => item.render(drawContext));
+        this.layer3.sort((a, b) => a.position.y - b.position.y);
+        this.layer3.forEach(item => item.render(drawContext));
     }
 }
 
@@ -309,6 +320,12 @@ var SpriteId;
     SpriteId["PlantOverlay"] = "plant-overlay";
     SpriteId["Hero"] = "hero";
 })(SpriteId || (SpriteId = {}));
+var SpriteChestState;
+(function (SpriteChestState) {
+    SpriteChestState["Closed"] = "closed";
+    SpriteChestState["Opening"] = "opening";
+    SpriteChestState["Open"] = "open";
+})(SpriteChestState || (SpriteChestState = {}));
 var SpriteHeroState;
 (function (SpriteHeroState) {
     SpriteHeroState["StillUp"] = "still-up";
@@ -325,7 +342,15 @@ const spritesData = [
     { id: SpriteId.Grass0, states: [{ tileId: TileId.Grass0 }] },
     { id: SpriteId.Grass1, states: [{ tileId: TileId.Grass1 }] },
     { id: SpriteId.Bush, states: [{ tileId: TileId.Bush }], hitBox: [3, 3, 35, 35] },
-    { id: SpriteId.Chest, states: [{ tileId: TileId.Chest }], hitBox: [0, 0, 59, 41] },
+    {
+        id: SpriteId.Chest,
+        states: [
+            { label: SpriteChestState.Closed, tileId: TileId.Chest, bbox: [0, 0, 65, 53] },
+            { label: SpriteChestState.Opening, tileId: TileId.Chest, bbox: [0, 0, 65, 53], frames: 3, delay: 200 },
+            { label: SpriteChestState.Open, tileId: TileId.Chest, bbox: [132, 0, 197, 53] },
+        ],
+        hitBox: [0, 7, 59, 48]
+    },
     { id: SpriteId.Book, states: [{ tileId: TileId.Book }], hitBox: 'bbox' },
     { id: SpriteId.Plant, states: [{ tileId: TileId.Plant, bbox: [0, 51, 44, 86], anchor: [0, -51] }], hitBox: 'bbox', hitBoxAnchor: [0, -51] },
     { id: SpriteId.PlantOverlay, states: [{ tileId: TileId.Plant, bbox: [0, 0, 44, 50] }] },
@@ -347,7 +372,8 @@ const spritesData = [
 
 var SceneDataItemType;
 (function (SceneDataItemType) {
-    SceneDataItemType[SceneDataItemType["Hero"] = 0] = "Hero";
+    SceneDataItemType[SceneDataItemType["Chest"] = 0] = "Chest";
+    SceneDataItemType[SceneDataItemType["Hero"] = 1] = "Hero";
 })(SceneDataItemType || (SceneDataItemType = {}));
 const sceneData = {
     layer0: [
@@ -360,7 +386,7 @@ const sceneData = {
         { spriteId: SpriteId.Bush, x: 300, y: 210 },
         { spriteId: SpriteId.Bush, x: 300, y: 255 },
         { spriteId: SpriteId.Bush, x: 300, y: 300 },
-        { spriteId: SpriteId.Chest, x: 100, y: 300 },
+        { spriteId: SpriteId.Chest, type: SceneDataItemType.Chest, x: 100, y: 300 },
         { spriteId: SpriteId.Book, x: 300, y: 100 },
     ],
     layer2: [
@@ -389,32 +415,39 @@ function getRandomId() {
 }
 
 class SceneItem {
-    uniqueId;
-    sprite;
-    position;
+    _uniqueId;
+    _sprite;
+    _position;
+    _lastSpriteUpdateOut;
     constructor(params) {
-        this.uniqueId = getRandomId();
-        this.sprite = params.sprite;
-        this.position = new GeomPoint(params.x, params.y);
+        this._uniqueId = getRandomId();
+        this._sprite = params.sprite;
+        this._position = new GeomPoint(params.x, params.y);
     }
     canCollide() {
-        return this.sprite.hasHitBox();
+        return this._sprite.hasHitBox();
     }
-    collidesWithOther(position, item) {
-        return this.sprite.collidesWithOther(position, item.sprite, item.position);
+    get uniqueId() {
+        return this._uniqueId;
+    }
+    get sprite() {
+        return this._sprite;
+    }
+    get position() {
+        return this._position;
     }
     get bbox() {
-        return this.sprite.bbox;
+        return this._sprite.bbox;
     }
     get hitBox() {
-        return this.sprite.hitBox;
+        return this._sprite.hitBox;
     }
-    processInputs(controlState) { }
+    processInputs(controlState, collider) { }
     update(dt, collider) {
-        this.sprite.update(dt);
+        this._lastSpriteUpdateOut = this._sprite.update(dt);
     }
     render(drawContext) {
-        this.sprite.render(drawContext, this.position);
+        this._sprite.render(drawContext, this._position);
     }
 }
 
@@ -438,6 +471,26 @@ class GeomVector {
     }
 }
 
+class SceneChest extends SceneItem {
+    isOpen = false;
+    constructor(params) {
+        super(params);
+        this._sprite.selectState(SpriteChestState.Closed);
+    }
+    open() {
+        if (!this.isOpen) {
+            this._sprite.selectState(SpriteChestState.Opening);
+            this.isOpen = true;
+        }
+    }
+    update(dt, collider) {
+        super.update(dt, collider);
+        if (this._lastSpriteUpdateOut.loopedAnimation) {
+            this._sprite.selectState(SpriteChestState.Open);
+        }
+    }
+}
+
 const SPEED_WALKING = 0.1;
 const SPEED_RUNNING = 0.2;
 class SceneHero extends SceneItem {
@@ -451,8 +504,8 @@ class SceneHero extends SceneItem {
         this.movingDirectionX = 0;
         this.movingDirectionY = 0;
     }
-    processInputs(controlState) {
-        super.processInputs(controlState);
+    processInputs(controlState, collider) {
+        super.processInputs(controlState, collider);
         this.state = SpriteHeroState.StillDown;
         this.movingDirectionX = 0;
         if (controlState.left) {
@@ -472,10 +525,14 @@ class SceneHero extends SceneItem {
             this.movingDirectionY = 1;
             this.state = SpriteHeroState.WalkingDown;
         }
-        this.sprite.selectState(this.state);
+        this._sprite.selectState(this.state);
         this.speed = controlState.control ? SPEED_RUNNING : SPEED_WALKING;
         if (controlState.action) {
-            console.log('ACTION');
+            const collideItem = collider.anyItemCollidesWith(this, this._position, { tolerance: 5 });
+            if (collideItem !== undefined && collideItem instanceof SceneChest) {
+                const chest = collideItem;
+                chest.open();
+            }
         }
     }
     update(dt, collider) {
@@ -495,11 +552,11 @@ class SceneHero extends SceneItem {
     }
     handleWalk(dt, direction, collider) {
         const moveDirection = direction.scale(this.speed * dt);
-        const nextPosition = this.position.moveByVector(moveDirection);
+        const nextPosition = this._position.moveByVector(moveDirection);
         if (collider.anyItemCollidesWith(this, nextPosition)) {
             return;
         }
-        this.position = this.position.moveByVector(moveDirection);
+        this._position = this._position.moveByVector(moveDirection);
     }
 }
 
@@ -528,6 +585,9 @@ class SpriteState {
         return this._bbox;
     }
     update(dt) {
+        const out = {
+            loopedAnimation: false,
+        };
         if (this.frames > 1) {
             this.millisecBeforeNextFrame -= dt;
             if (this.millisecBeforeNextFrame < 0) {
@@ -535,26 +595,26 @@ class SpriteState {
                 this.currentFrame++;
                 if (this.currentFrame >= this.frames) {
                     this.currentFrame = 0;
+                    out.loopedAnimation = true;
                 }
                 this._bbox.x = this.firstFrameBBoxX + this.currentFrame * this._bbox.w;
             }
         }
+        return out;
     }
     render(drawContext, position) {
         this.tile.render(drawContext, this._bbox, position.moveByVector(new GeomVector(-this.anchor.x, -this.anchor.y)));
     }
 }
 class Sprite {
-    id;
     states;
     _hitBox;
-    hitBoxAnchor;
+    _hitBoxAnchor;
     currentState;
-    constructor(id, states, _hitBox, hitBoxAnchor) {
-        this.id = id;
+    constructor(states, _hitBox, _hitBoxAnchor) {
         this.states = states;
         this._hitBox = _hitBox;
-        this.hitBoxAnchor = hitBoxAnchor;
+        this._hitBoxAnchor = _hitBoxAnchor;
         if (states.length < 1) {
             console.error('Sprite states must have at least 1 state');
             throw new Error('');
@@ -567,6 +627,9 @@ class Sprite {
     get hitBox() {
         return this._hitBox;
     }
+    get hitBoxAnchor() {
+        return this._hitBoxAnchor;
+    }
     hasHitBox() {
         return this._hitBox !== undefined;
     }
@@ -578,25 +641,15 @@ class Sprite {
         }
     }
     update(dt) {
-        this.currentState.update(dt);
+        return this.currentState.update(dt);
     }
     render(drawContext, position) {
         this.currentState.render(drawContext, position);
         if (this._hitBox instanceof GeomRect) {
-            drawContext.strokeRect(position.x - (this.hitBoxAnchor?.x ?? 0) + this._hitBox.x, position.y - (this.hitBoxAnchor?.y ?? 0) + this._hitBox.y, this._hitBox.w, this._hitBox.h, {
+            drawContext.strokeRect(position.x - (this._hitBoxAnchor?.x ?? 0) + this._hitBox.x, position.y - (this._hitBoxAnchor?.y ?? 0) + this._hitBox.y, this._hitBox.w, this._hitBox.h, {
                 color: 'lightgreen',
             });
         }
-    }
-    collidesWithOther(position, other, otherPosition) {
-        if (this._hitBox instanceof GeomRect) {
-            const thisHitBox = new GeomRect(position.x - (this.hitBoxAnchor?.x ?? 0) + this._hitBox.x, position.y - (this.hitBoxAnchor?.y ?? 0) + this._hitBox.y, this._hitBox.w, this._hitBox.h);
-            if (other._hitBox instanceof GeomRect) {
-                const otherHitBox = new GeomRect(otherPosition.x - (other.hitBoxAnchor?.x ?? 0) + other._hitBox.x, otherPosition.y - (other.hitBoxAnchor?.y ?? 0) + other._hitBox.y, other._hitBox.w, other._hitBox.h);
-                return thisHitBox.intersectsWithRect(otherHitBox);
-            }
-        }
-        return false;
     }
 }
 
@@ -654,7 +707,7 @@ class SpriteManager {
         if (spriteData.hitBoxAnchor !== undefined) {
             hitBoxAnchor = new GeomPoint(spriteData.hitBoxAnchor[0], spriteData.hitBoxAnchor[1]);
         }
-        return new Sprite(spriteData.id, states, hitBox, hitBoxAnchor);
+        return new Sprite(states, hitBox, hitBoxAnchor);
     }
 }
 
@@ -691,6 +744,8 @@ class Factory {
         const sprite = spriteManager.getSprite(dataItem.spriteId);
         if (dataItem.type !== undefined) {
             switch (dataItem.type) {
+                case SceneDataItemType.Chest:
+                    return new SceneChest({ sprite, x: dataItem.x, y: dataItem.y });
                 case SceneDataItemType.Hero:
                     return new SceneHero({ sprite, x: dataItem.x, y: dataItem.y });
                 default:

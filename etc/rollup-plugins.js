@@ -15,7 +15,7 @@ export function initializeBundle() {
         console.warn(`${emptyOutputDir.name}: no outputDir`);
         return options;
       }
-      initializeBundle(outputDir);
+      initializeBundleAction(outputDir);
       return options;
     },
   };
@@ -26,12 +26,12 @@ export function finalizeBundle() {
     name: 'finalize-bundle',
     // https://rollupjs.org/plugin-development/#closebundle
     closeBundle() {
-      finalizeBundle();
+      finalizeBundleAction();
     }
   };
 }
 
-function initializeBundle(outputDir) {
+function initializeBundleAction(outputDir) {
   console.log(`emptying ${outputDir}`);
   fs.readdirSync(outputDir, { withFileTypes: true }).forEach(entry => {
     if (entry.isDirectory()) {
@@ -42,7 +42,7 @@ function initializeBundle(outputDir) {
   });
 }
 
-function finalizeBundle() {
+function finalizeBundleAction() {
   const docsDir = 'docs';
   fs.mkdirSync(docsDir, { recursive: true });
   console.log(`src/index.html -> ${docsDir}/index.html`);

@@ -4,6 +4,10 @@ import { GeomRect } from './geom/geom-rect.js';
 import { GeomVector } from './geom/geom-vector.js';
 import { Tile } from './tile.js';
 
+export interface SpriteStateUpdateOut {
+  loopedAnimation: boolean;
+}
+
 export class SpriteState {
   private firstFrameBBoxX: number;
   private currentFrame: number;
@@ -26,7 +30,10 @@ export class SpriteState {
     return this._bbox;
   }
 
-  public update(dt: number): void {
+  public update(dt: number): SpriteStateUpdateOut {
+    const out: SpriteStateUpdateOut = {
+      loopedAnimation: false,
+    };
     if (this.frames > 1) {
       this.millisecBeforeNextFrame -= dt;
       if (this.millisecBeforeNextFrame < 0) {
@@ -34,10 +41,12 @@ export class SpriteState {
         this.currentFrame++;
         if (this.currentFrame >= this.frames) {
           this.currentFrame = 0;
+          out.loopedAnimation = true;
         }
         this._bbox.x = this.firstFrameBBoxX + this.currentFrame * this._bbox.w;
       }
     }
+    return out;
   }
 
   public render(drawContext: DrawContext, position: GeomPoint): void {
@@ -49,10 +58,9 @@ export class Sprite {
   private currentState: SpriteState;
 
   public constructor(
-    public id: string,
     private states: SpriteState[],
     private _hitBox: GeomRect | undefined, // hitBox inside the bbox (relative pixel coordinates, relative to bbox)
-    private hitBoxAnchor: GeomPoint | undefined,
+    private _hitBoxAnchor: GeomPoint | undefined,
   ) {
     if (states.length < 1) {
       console.error('Sprite states must have at least 1 state');
@@ -69,11 +77,15 @@ export class Sprite {
     return this._hitBox;
   }
 
+  public get hitBoxAnchor(): GeomPoint |  undefined {
+    return this._hitBoxAnchor;
+  }
+
   public hasHitBox(): boolean {
     return this._hitBox !== undefined;
   }
 
-  public selectState(label: string): void {
+  public selectState(label: string, ): void {
     this.currentState = this.states[0];
     const state = this.states.find(s => s.label === label);
     if (state !== undefined) {
@@ -81,8 +93,8 @@ export class Sprite {
     }
   }
 
-  public update(dt: number): void {
-    this.currentState.update(dt);
+  public update(dt: number): SpriteStateUpdateOut {
+    return this.currentState.update(dt);
   }
 
   public render(drawContext: DrawContext, position: GeomPoint): void {
@@ -90,8 +102,8 @@ export class Sprite {
 
     if (this._hitBox instanceof GeomRect) {
       drawContext.strokeRect(
-        position.x - (this.hitBoxAnchor?.x ?? 0) + this._hitBox.x,
-        position.y - (this.hitBoxAnchor?.y ?? 0) + this._hitBox.y,
+        position.x - (this._hitBoxAnchor?.x ?? 0) + this._hitBox.x,
+        position.y - (this._hitBoxAnchor?.y ?? 0) + this._hitBox.y,
         this._hitBox.w,
         this._hitBox.h,
         {
@@ -99,27 +111,5 @@ export class Sprite {
         },
       );
     }
-  }
-
-  public collidesWithOther(position: GeomPoint, other: Sprite, otherPosition: GeomPoint): boolean {
-    if (this._hitBox instanceof GeomRect) {
-      const thisHitBox = new GeomRect(
-        position.x - (this.hitBoxAnchor?.x ?? 0) + this._hitBox.x,
-        position.y - (this.hitBoxAnchor?.y ?? 0) + this._hitBox.y,
-        this._hitBox.w,
-        this._hitBox.h,
-      );
-
-      if (other._hitBox instanceof GeomRect) {
-        const otherHitBox = new GeomRect(
-          otherPosition.x - (other.hitBoxAnchor?.x ?? 0) + other._hitBox.x,
-          otherPosition.y - (other.hitBoxAnchor?.y ?? 0) + other._hitBox.y,
-          other._hitBox.w,
-          other._hitBox.h,
-        );
-        return thisHitBox.intersectsWithRect(otherHitBox);
-      }
-    }
-    return false;
   }
 }

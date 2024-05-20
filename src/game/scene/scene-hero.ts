@@ -4,6 +4,7 @@ import { DrawContext } from '../draw-context.js';
 import { SceneItem, SceneItemInitParams } from './scene-item.js';
 import { SceneCollider } from './scene-collider.js';
 import { SpriteHeroState } from '../data/sprites-data.js';
+import { SceneChest } from './scene-chest.js';
 
 const SPEED_WALKING = 0.1;
 const SPEED_RUNNING = 0.2;
@@ -21,8 +22,8 @@ export class SceneHero extends SceneItem {
     this.movingDirectionY = 0;
   }
 
-  public processInputs(controlState: ControlState): void {
-    super.processInputs(controlState);
+  public processInputs(controlState: ControlState, collider: SceneCollider): void {
+    super.processInputs(controlState, collider);
 
     this.state = SpriteHeroState.StillDown;
 
@@ -44,12 +45,16 @@ export class SceneHero extends SceneItem {
       this.state = SpriteHeroState.WalkingDown;
     }
 
-    this.sprite.selectState(this.state);
+    this._sprite.selectState(this.state);
 
     this.speed = controlState.control ? SPEED_RUNNING : SPEED_WALKING;
 
     if (controlState.action) {
-      console.log('ACTION');
+      const collideItem = collider.anyItemCollidesWith(this, this._position, { tolerance: 5 });
+      if (collideItem !== undefined && collideItem instanceof SceneChest) {
+        const chest = collideItem as SceneChest;
+        chest.open();
+      }
     }
   }
 
@@ -82,10 +87,10 @@ export class SceneHero extends SceneItem {
 
   private handleWalk(dt: number, direction: GeomVector, collider: SceneCollider): void {
     const moveDirection = direction.scale(this.speed * dt);
-    const nextPosition = this.position.moveByVector(moveDirection);
+    const nextPosition = this._position.moveByVector(moveDirection);
     if (collider.anyItemCollidesWith(this, nextPosition)) {
       return;
     }
-    this.position = this.position.moveByVector(moveDirection);
+    this._position = this._position.moveByVector(moveDirection);
   }
 }

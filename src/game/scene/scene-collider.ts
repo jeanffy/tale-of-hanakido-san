@@ -2,24 +2,53 @@
 // import { GeomRect } from '../geom/geom-rect.js';
 // import { GeomVector } from '../geom/geom-vector.js';
 import { GeomPoint } from '../geom/geom-point.js';
+import { GeomRect } from '../geom/geom-rect.js';
+import { Sprite } from '../sprite.js';
 import { SceneItem } from './scene-item.js';
+
+export interface ColliderOptions {
+  tolerance?: number;
+}
 
 export class SceneCollider {
   public constructor(private items: SceneItem[]) {
   }
 
-  public anyItemCollidesWith(checkedItem: SceneItem, position: GeomPoint): SceneItem | undefined {
+  public anyItemCollidesWith(checkedItem: SceneItem, position: GeomPoint, options?: ColliderOptions): SceneItem | undefined {
     for (const sceneItem of this.items) {
       // don't check item against items that do not participate in collisions
       // don't check item against itself
       if (!sceneItem.canCollide() || sceneItem.uniqueId === checkedItem.uniqueId) {
         continue;
       }
-      if (checkedItem.collidesWithOther(position, sceneItem)) {
+
+      if (this.checkCollision(checkedItem.sprite, position, sceneItem.sprite, sceneItem.position, options?.tolerance ?? 0)) {
         return sceneItem;
       }
     }
     return undefined;
+  }
+
+  private checkCollision(sprite1: Sprite, position1: GeomPoint, sprite2: Sprite, position2: GeomPoint, tolerance: number): boolean {
+    if (sprite1.hitBox instanceof GeomRect) {
+      const hitBox1 = new GeomRect(
+        position1.x - (sprite1.hitBoxAnchor?.x ?? 0) + sprite1.hitBox.x - tolerance,
+        position1.y - (sprite1.hitBoxAnchor?.y ?? 0) + sprite1.hitBox.y - tolerance,
+        sprite1.hitBox.w + tolerance,
+        sprite1.hitBox.h + tolerance,
+      );
+
+      if (sprite2.hitBox instanceof GeomRect) {
+        const hitBox2 = new GeomRect(
+          position2.x - (sprite2.hitBoxAnchor?.x ?? 0) + sprite2.hitBox.x - tolerance,
+          position2.y - (sprite2.hitBoxAnchor?.y ?? 0) + sprite2.hitBox.y - tolerance,
+          sprite2.hitBox.w + tolerance,
+          sprite2.hitBox.h + tolerance,
+        );
+        return hitBox1.intersectsWithRect(hitBox2);
+      }
+    }
+    return false;
   }
 
   // public anyItemCollidesWithHitBox(uniqueId: string, hitBox: GeomRect | GeomCircle): SceneItem | undefined {

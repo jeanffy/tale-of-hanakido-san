@@ -6,6 +6,7 @@ import { SceneItem } from './scene/scene-item.js';
 import { SceneHero } from './scene/scene-hero.js';
 import { SpriteManager } from './sprite-manager.js';
 import { spritesData } from './data/sprites-data.js';
+import { SceneChest } from './scene/scene-chest.js';
 
 export class Factory {
   private tileManager: TileManager | undefined;
@@ -51,6 +52,8 @@ export class Factory {
 
     if (dataItem.type !== undefined) {
       switch (dataItem.type) {
+        case SceneDataItemType.Chest:
+          return new SceneChest({ sprite, x: dataItem.x, y: dataItem.y });
         case SceneDataItemType.Hero:
           return new SceneHero({ sprite, x: dataItem.x, y: dataItem.y });
         default:

@@ -14,6 +14,12 @@ export enum SpriteId {
   Hero = 'hero',
 }
 
+export enum SpriteChestState {
+  Closed = 'closed',
+  Opening = 'opening',
+  Open = 'open',
+}
+
 export enum SpriteHeroState {
   StillUp = 'still-up',
   StillDown = 'still-down',
@@ -47,7 +53,15 @@ export const spritesData: SpriteData2[] = [
   { id: SpriteId.Grass0, states: [{ tileId: TileId.Grass0 }] },
   { id: SpriteId.Grass1, states: [{ tileId: TileId.Grass1 }] },
   { id: SpriteId.Bush, states: [{ tileId: TileId.Bush }], hitBox: [3, 3, 35, 35] },
-  { id: SpriteId.Chest, states: [{ tileId: TileId.Chest }], hitBox: [0, 0, 59, 41] },
+  {
+    id: SpriteId.Chest,
+    states: [
+      { label: SpriteChestState.Closed, tileId: TileId.Chest, bbox: [0, 0, 65, 53] },
+      { label: SpriteChestState.Opening, tileId: TileId.Chest, bbox: [0, 0, 65, 53], frames: 3, delay: 200 },
+      { label: SpriteChestState.Open, tileId: TileId.Chest, bbox: [132, 0, 197, 53] },
+    ],
+    hitBox: [0, 7, 59, 48]
+  },
   { id: SpriteId.Book, states: [{ tileId: TileId.Book }], hitBox: 'bbox' },
   { id: SpriteId.Plant, states: [{ tileId: TileId.Plant, bbox: [0, 51, 44, 86], anchor: [0, -51] }], hitBox: 'bbox', hitBoxAnchor: [0, -51] },
   { id: SpriteId.PlantOverlay, states: [{ tileId: TileId.Plant, bbox: [0, 0, 44, 50] }] },

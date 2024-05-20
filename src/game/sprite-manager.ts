@@ -69,6 +69,6 @@ export class SpriteManager {
       hitBoxAnchor = new GeomPoint(spriteData.hitBoxAnchor[0], spriteData.hitBoxAnchor[1]);
     }
 
-    return new Sprite(spriteData.id, states, hitBox, hitBoxAnchor);
+    return new Sprite(states, hitBox, hitBoxAnchor);
   }
 }

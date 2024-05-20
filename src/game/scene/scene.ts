@@ -16,10 +16,11 @@ export class Scene {
   }
 
   public processInputs(dt: number, controlState: ControlState): void {
-    this.layer2.forEach(item => item.processInputs(controlState));
+    this.layer2.forEach(item => item.processInputs(controlState, this.collider));
   }
 
   public update(dt: number): void {
+    this.layer1.forEach(item => item.update(dt, this.collider));
     this.layer2.forEach(item => item.update(dt, this.collider));
   }
 

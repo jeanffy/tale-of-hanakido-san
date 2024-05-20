@@ -1,6 +1,7 @@
 import { SpriteId } from './sprites-data.js';
 
 export enum SceneDataItemType {
+  Chest,
   Hero,
 }
 
@@ -31,7 +32,7 @@ export const sceneData: SceneData = {
     { spriteId: SpriteId.Bush, x: 300, y: 210 },
     { spriteId: SpriteId.Bush, x: 300, y: 255 },
     { spriteId: SpriteId.Bush, x: 300, y: 300 },
-    { spriteId: SpriteId.Chest, x: 100, y: 300 },
+    { spriteId: SpriteId.Chest, type: SceneDataItemType.Chest, x: 100, y: 300 },
     { spriteId: SpriteId.Book, x: 300, y: 100 },
   ],
   layer2: [
