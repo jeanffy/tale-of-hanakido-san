@@ -478,7 +478,11 @@ class SceneChest extends SceneItem {
         this._sprite.selectState(SpriteChestState.Closed);
     }
     open() {
-        if (!this.isOpen) {
+        if (this.isOpen) {
+            this._sprite.selectState(SpriteChestState.Opening, true);
+            this.isOpen = false;
+        }
+        else {
             this._sprite.selectState(SpriteChestState.Opening);
             this.isOpen = true;
         }
@@ -486,7 +490,7 @@ class SceneChest extends SceneItem {
     update(dt, collider) {
         super.update(dt, collider);
         if (this._lastSpriteUpdateOut.loopedAnimation) {
-            this._sprite.selectState(SpriteChestState.Open);
+            this._sprite.selectState(this.isOpen ? SpriteChestState.Open : SpriteChestState.Closed);
         }
     }
 }
@@ -570,6 +574,7 @@ class SpriteState {
     firstFrameBBoxX;
     currentFrame;
     millisecBeforeNextFrame;
+    reverse = false;
     constructor(label, tile, _bbox, anchor, frames, delay) {
         this.label = label;
         this.tile = tile;
@@ -584,6 +589,14 @@ class SpriteState {
     get bbox() {
         return this._bbox;
     }
+    get isReversed() {
+        return this.reverse;
+    }
+    init(reverse) {
+        this.currentFrame = reverse ? this.frames - 1 : 0;
+        this.reverse = reverse;
+        this._bbox.x = this.firstFrameBBoxX + this.currentFrame * this._bbox.w;
+    }
     update(dt) {
         const out = {
             loopedAnimation: false,
@@ -592,10 +605,19 @@ class SpriteState {
             this.millisecBeforeNextFrame -= dt;
             if (this.millisecBeforeNextFrame < 0) {
                 this.millisecBeforeNextFrame = this.delay;
-                this.currentFrame++;
-                if (this.currentFrame >= this.frames) {
-                    this.currentFrame = 0;
-                    out.loopedAnimation = true;
+                if (this.reverse) {
+                    this.currentFrame--;
+                    if (this.currentFrame < 0) {
+                        this.currentFrame = this.frames - 1;
+                        out.loopedAnimation = true;
+                    }
+                }
+                else {
+                    this.currentFrame++;
+                    if (this.currentFrame >= this.frames) {
+                        this.currentFrame = 0;
+                        out.loopedAnimation = true;
+                    }
                 }
                 this._bbox.x = this.firstFrameBBoxX + this.currentFrame * this._bbox.w;
             }
@@ -633,23 +655,25 @@ class Sprite {
     hasHitBox() {
         return this._hitBox !== undefined;
     }
-    selectState(label) {
+    selectState(label, reverse) {
+        if (label === this.currentState.label) {
+            const reversed = reverse ?? false;
+            if (this.currentState.isReversed === reversed) {
+                return;
+            }
+        }
         this.currentState = this.states[0];
         const state = this.states.find(s => s.label === label);
         if (state !== undefined) {
             this.currentState = state;
         }
+        this.currentState.init(reverse ?? false);
     }
     update(dt) {
         return this.currentState.update(dt);
     }
     render(drawContext, position) {
         this.currentState.render(drawContext, position);
-        if (this._hitBox instanceof GeomRect) {
-            drawContext.strokeRect(position.x - (this._hitBoxAnchor?.x ?? 0) + this._hitBox.x, position.y - (this._hitBoxAnchor?.y ?? 0) + this._hitBox.y, this._hitBox.w, this._hitBox.h, {
-                color: 'lightgreen',
-            });
-        }
     }
 }
 

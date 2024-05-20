@@ -12,6 +12,7 @@ export class SpriteState {
   private firstFrameBBoxX: number;
   private currentFrame: number;
   private millisecBeforeNextFrame: number;
+  private reverse = false;
 
   public constructor(
     public label: string | undefined,
@@ -30,6 +31,16 @@ export class SpriteState {
     return this._bbox;
   }
 
+  public get isReversed(): boolean {
+    return this.reverse;
+  }
+
+  public init(reverse: boolean): void {
+    this.currentFrame = reverse ? this.frames - 1 : 0;
+    this.reverse = reverse;
+    this._bbox.x = this.firstFrameBBoxX + this.currentFrame * this._bbox.w;
+  }
+
   public update(dt: number): SpriteStateUpdateOut {
     const out: SpriteStateUpdateOut = {
       loopedAnimation: false,
@@ -38,10 +49,18 @@ export class SpriteState {
       this.millisecBeforeNextFrame -= dt;
       if (this.millisecBeforeNextFrame < 0) {
         this.millisecBeforeNextFrame = this.delay;
-        this.currentFrame++;
-        if (this.currentFrame >= this.frames) {
-          this.currentFrame = 0;
-          out.loopedAnimation = true;
+        if (this.reverse) {
+          this.currentFrame--;
+          if (this.currentFrame < 0) {
+            this.currentFrame = this.frames - 1;
+            out.loopedAnimation = true;
+          }
+        } else {
+          this.currentFrame++;
+          if (this.currentFrame >= this.frames) {
+            this.currentFrame = 0;
+            out.loopedAnimation = true;
+          }
         }
         this._bbox.x = this.firstFrameBBoxX + this.currentFrame * this._bbox.w;
       }
@@ -85,12 +104,21 @@ export class Sprite {
     return this._hitBox !== undefined;
   }
 
-  public selectState(label: string, ): void {
+  public selectState(label: string, reverse?: boolean): void {
+    // if state is the same and reverse status is the same, right state is already selected
+    if (label === this.currentState.label) {
+      const reversed = reverse ?? false;
+      if (this.currentState.isReversed === reversed) {
+        return;
+      }
+    }
+
     this.currentState = this.states[0];
     const state = this.states.find(s => s.label === label);
     if (state !== undefined) {
       this.currentState = state;
     }
+    this.currentState.init(reverse ?? false);
   }
 
   public update(dt: number): SpriteStateUpdateOut {
@@ -100,16 +128,16 @@ export class Sprite {
   public render(drawContext: DrawContext, position: GeomPoint): void {
     this.currentState.render(drawContext, position);
 
-    if (this._hitBox instanceof GeomRect) {
-      drawContext.strokeRect(
-        position.x - (this._hitBoxAnchor?.x ?? 0) + this._hitBox.x,
-        position.y - (this._hitBoxAnchor?.y ?? 0) + this._hitBox.y,
-        this._hitBox.w,
-        this._hitBox.h,
-        {
-          color: 'lightgreen',
-        },
-      );
-    }
+    // if (this._hitBox instanceof GeomRect) {
+    //   drawContext.strokeRect(
+    //     position.x - (this._hitBoxAnchor?.x ?? 0) + this._hitBox.x,
+    //     position.y - (this._hitBoxAnchor?.y ?? 0) + this._hitBox.y,
+    //     this._hitBox.w,
+    //     this._hitBox.h,
+    //     {
+    //       color: 'lightgreen',
+    //     },
+    //   );
+    // }
   }
 }

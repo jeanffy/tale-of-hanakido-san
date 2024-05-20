@@ -11,7 +11,10 @@ export class SceneChest extends SceneItem {
   }
 
   public open(): void {
-    if (!this.isOpen) {
+    if (this.isOpen) {
+      this._sprite.selectState(SpriteChestState.Opening, true);
+      this.isOpen = false;
+    } else {
       this._sprite.selectState(SpriteChestState.Opening);
       this.isOpen = true;
     }
@@ -20,7 +23,7 @@ export class SceneChest extends SceneItem {
   public update(dt: number, collider: SceneCollider): void {
     super.update(dt, collider);
     if (this._lastSpriteUpdateOut.loopedAnimation) {
-      this._sprite.selectState(SpriteChestState.Open);
+      this._sprite.selectState(this.isOpen ? SpriteChestState.Open : SpriteChestState.Closed);
     }
   }
 }
