@@ -5,14 +5,13 @@
   "type": "module",
   "scripts": {
     "start": "nodemon",
-    "build": "sh build.sh",
+    "build": "sh etc/build.sh",
     "publish": "rollup -c"
   },
   "dependencies": {},
   "devDependencies": {
     "@rollup/plugin-typescript": "11.1.6",
     "copyfiles": "2.4.1",
-    "del-cli": "5.1.0",
     "glob": "10.3.12",
     "nodemon": "3.1.0",
     "rollup": "4.17.2",

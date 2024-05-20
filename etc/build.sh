@@ -1,4 +1,4 @@
-node clean-directory.mjs dist
+node etc/clean-directory.mjs dist
 npx tsc
 npx copyfiles -u 1 src/index.html dist
 npx copyfiles -u 1 src/index.css dist

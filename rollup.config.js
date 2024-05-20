@@ -1,5 +1,5 @@
 import typescript from '@rollup/plugin-typescript';
-import { copyAssets, copyIndex, emptyOutputDir } from './rollup-plugins.js';
+import { initializeBundle, finalizeBundle } from './etc/rollup-plugins.js';
 
 const config = [
   {
@@ -11,9 +11,8 @@ const config = [
       sourcemap: true,
     },
     plugins: [
-      copyIndex(),
-      copyAssets(),
-      emptyOutputDir(),
+      initializeBundle(),
+      finalizeBundle(),
       typescript()
     ],
   },
