@@ -1,4 +1,4 @@
-import { FillOptions, StrokeOptions, WriteTextOptions, type DrawContext } from './game/draw-context.js';
+import { FillOptions, StrokeOptions, WriteTextOptions, type DrawContext } from './engine/draw-context.js';
 
 export class CanvasDrawContext implements DrawContext {
   public constructor(private context: CanvasRenderingContext2D) {}

@@ -1,28 +1,29 @@
-import { GeomVector } from '../geom/geom-vector.js';
-import { ControlState } from '../control-state.js';
-import { DrawContext } from '../draw-context.js';
-import { SceneItem, SceneItemInitParams } from './scene-item.js';
-import { SceneCollider } from './scene-collider.js';
-import { SpriteHeroState } from '../data/sprites-data.js';
-import { SceneChest } from './scene-chest.js';
+import { GeomVector } from '../engine/geom/geom-vector.js';
+import { ControlState } from '../engine/control-state.js';
+import { DrawContext } from '../engine/draw-context.js';
+import { GenericItem, GenericItemInitParams } from '../engine/scene/generic.item.js';
+import { SceneCollider } from '../engine/scene/scene-collider.js';
+import { SpriteHeroState } from './sprites.data.js';
+import { ChestItem } from './chest.item.js';
+import { TileId } from './tiles.data.js';
 
 const SPEED_WALKING = 0.1;
 const SPEED_RUNNING = 0.2;
 
-export class SceneHero extends SceneItem {
+export class HeroItem extends GenericItem<TileId> {
   private movingDirectionX: number;
   private movingDirectionY: number;
   private state: SpriteHeroState;
   private speed = SPEED_WALKING;
 
-  public constructor(params: SceneItemInitParams) {
+  public constructor(params: GenericItemInitParams<TileId>) {
     super(params);
     this.state = SpriteHeroState.StillDown;
     this.movingDirectionX = 0;
     this.movingDirectionY = 0;
   }
 
-  public processInputs(controlState: ControlState, collider: SceneCollider): void {
+  public processInputs(controlState: ControlState, collider: SceneCollider<TileId>): void {
     super.processInputs(controlState, collider);
 
     this.state = SpriteHeroState.StillDown;
@@ -51,14 +52,14 @@ export class SceneHero extends SceneItem {
 
     if (controlState.action) {
       const collideItem = collider.anyItemCollidesWith(this, this._position, { tolerance: 5 });
-      if (collideItem !== undefined && collideItem instanceof SceneChest) {
-        const chest = collideItem as SceneChest;
+      if (collideItem !== undefined && collideItem instanceof ChestItem) {
+        const chest = collideItem as ChestItem;
         chest.open();
       }
     }
   }
 
-  public update(dt: number, collider: SceneCollider): void {
+  public update(dt: number, collider: SceneCollider<TileId>): void {
     super.update(dt, collider);
 
     switch (this.state) {
@@ -85,7 +86,7 @@ export class SceneHero extends SceneItem {
     super.render(drawContext);
   }
 
-  private handleWalk(dt: number, direction: GeomVector, collider: SceneCollider): void {
+  private handleWalk(dt: number, direction: GeomVector, collider: SceneCollider<TileId>): void {
     const moveDirection = direction.scale(this.speed * dt);
     const nextPosition = this._position.moveByVector(moveDirection);
     if (collider.anyItemCollidesWith(this, nextPosition)) {

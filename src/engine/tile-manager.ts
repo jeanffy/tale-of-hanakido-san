@@ -1,12 +1,16 @@
-import { TileData, TileId } from './data/tiles-data.js';
 import { Tile } from './tile.js';
 
-export class TileManager {
-  private tiles = new Map<TileId, Tile>();
+export interface TileData<TTileId> {
+  id: TTileId;
+  url: string;
+}
 
-  public async loadTiles(dataTiles: TileData[]): Promise<void> {
+export class TileManager<TTileId> {
+  private tiles = new Map<TTileId, Tile<TTileId>>();
+
+  public async loadTiles(dataTiles: TileData<TTileId>[]): Promise<void> {
     for (const dataTile of dataTiles) {
-      const tile = await new Promise<Tile>((resolve, reject) => {
+      const tile = await new Promise<Tile<TTileId>>((resolve, reject) => {
         const image = new Image();
         image.onload = () => {
           resolve(new Tile(dataTile.id, image));
@@ -20,7 +24,7 @@ export class TileManager {
     }
   }
 
-  public getTile(id: TileId): Tile {
+  public getTile(id: TTileId): Tile<TTileId> {
     const tile = this.tiles.get(id);
     if (tile === undefined) {
       throw new Error(`No tile for id '${id}'`);

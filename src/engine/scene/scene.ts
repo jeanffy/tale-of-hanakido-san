@@ -1,16 +1,16 @@
 import type { DrawContext } from '../draw-context.js';
-import { SceneItem } from './scene-item.js';
+import { GenericItem } from './generic.item.js';
 import { ControlState } from '../control-state.js';
 import { SceneCollider } from './scene-collider.js';
 
-export class Scene {
-  private collider: SceneCollider; // TODO: remove coupling
+export class Scene<TTileId> {
+  private collider: SceneCollider<TTileId>; // TODO: remove coupling
 
   public constructor(
-    private layer0: SceneItem[],
-    private layer1: SceneItem[],
-    private layer2: SceneItem[],
-    private layer3: SceneItem[],
+    private layer0: GenericItem<TTileId>[],
+    private layer1: GenericItem<TTileId>[],
+    private layer2: GenericItem<TTileId>[],
+    private layer3: GenericItem<TTileId>[],
   ) {
     this.collider = new SceneCollider([...this.layer1, ...this.layer2]);
   }

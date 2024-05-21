@@ -1,4 +1,4 @@
-import { SpriteId } from './sprites-data.js';
+import { SpriteId } from './sprites.data.js';
 
 export enum SceneDataItemType {
   Chest,
@@ -35,9 +35,7 @@ export const sceneData: SceneData = {
     { spriteId: SpriteId.Chest, type: SceneDataItemType.Chest, x: 100, y: 300 },
     { spriteId: SpriteId.Book, x: 300, y: 100 },
   ],
-  layer2: [
-    { spriteId: SpriteId.Hero, type: SceneDataItemType.Hero, x: 50, y: 100 }
-  ],
+  layer2: [{ spriteId: SpriteId.Hero, type: SceneDataItemType.Hero, x: 50, y: 100 }],
   layer3: [
     { spriteId: SpriteId.PlantOverlay, x: 150, y: 100 },
     { spriteId: SpriteId.PlantOverlay, x: 205, y: 100 },

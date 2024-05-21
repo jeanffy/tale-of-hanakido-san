@@ -1,12 +1,14 @@
 import { DrawContext } from './draw-context.js';
 import { GeomRect } from './geom/geom-rect.js';
 import { GeomPoint } from './geom/geom-point.js';
-import { TileId } from './data/tiles-data.js';
 
-export class Tile {
+export class Tile<TTileId> {
   public imageBBox: GeomRect;
 
-  public constructor(public id: TileId, private image: HTMLImageElement) {
+  public constructor(
+    public id: TTileId,
+    private image: HTMLImageElement,
+  ) {
     this.imageBBox = new GeomRect(0, 0, image.width, image.height);
   }
 
@@ -27,33 +29,23 @@ export class Tile {
     if (bbox.equals(this.imageBBox)) {
       drawContext.drawImage(this.image, position.x, position.y, this.image.width, this.image.height);
     } else {
-      drawContext.drawImageCropped(
-        this.image,
-        bbox.x,
-        bbox.y,
-        bbox.w,
-        bbox.h,
-        position.x,
-        position.y,
-        bbox.w,
-        bbox.h,
-      );
+      drawContext.drawImageCropped(this.image, bbox.x, bbox.y, bbox.w, bbox.h, position.x, position.y, bbox.w, bbox.h);
 
-        // }
-        // if (this.hitBoxRect !== undefined) {
-        //   drawContext.strokeRect(
-        //     position.x + this.hitBoxRect.x,
-        //     position.y + this.hitBoxRect.y,
-        //     this.hitBoxRect.w,
-        //     this.hitBoxRect.h,
-        //     {
-        //       color: 'yellow',
-        //     },
-        //   );
-        // }
-        // if (this.hitBoxCircle !== undefined) {
-        //   // drawContext.strokeCircle
-        // }
+      // }
+      // if (this.hitBoxRect !== undefined) {
+      //   drawContext.strokeRect(
+      //     position.x + this.hitBoxRect.x,
+      //     position.y + this.hitBoxRect.y,
+      //     this.hitBoxRect.w,
+      //     this.hitBoxRect.h,
+      //     {
+      //       color: 'yellow',
+      //     },
+      //   );
+      // }
+      // if (this.hitBoxCircle !== undefined) {
+      //   // drawContext.strokeCircle
+      // }
     }
   }
 }

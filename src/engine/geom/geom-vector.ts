@@ -1,5 +1,8 @@
 export class GeomVector {
-  public constructor(public x: number, public y: number) {}
+  public constructor(
+    public x: number,
+    public y: number,
+  ) {}
 
   public normalize(): GeomVector {
     const magnitude = Math.sqrt(this.x * this.x + this.y * this.y);

@@ -1,5 +1,10 @@
-node etc/clean-directory.mjs dist
-npx tsc
-npx copyfiles -u 1 src/index.html dist
-npx copyfiles -u 1 src/index.css dist
-npx copyfiles -u 2 "src/assets/**/*.{jpg,png}" dist/assets
+thisScriptDir=$(dirname "$0")
+rootDir=$thisScriptDir/..
+
+outputDir=$rootDir/dist
+
+node "$rootDir/etc/clean-directory.mjs" "$outputDir"
+npx --prefix "$rootDir" tsc
+npx copyfiles -u 1 "$rootDir/src/index.html" "$outputDir"
+npx copyfiles -u 1 "$rootDir/src/index.css" "$outputDir"
+npx copyfiles -u 2 "$rootDir/src/assets/**/*.{jpg,png}" "$outputDir/assets"

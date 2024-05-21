@@ -3,7 +3,12 @@ import { GeomVector } from './geom-vector.js';
 import { Intersections } from './intersections.js';
 
 export class GeomRect {
-  public constructor(public x: number, public y: number, public w: number, public h: number) {}
+  public constructor(
+    public x: number,
+    public y: number,
+    public w: number,
+    public h: number,
+  ) {}
 
   public equals(other: GeomRect): boolean {
     return this.x === other.x && this.y === other.y && this.w === other.w && this.h === other.h;

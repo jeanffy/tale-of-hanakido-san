@@ -1,3 +1,5 @@
+import { TileData } from '../engine/tile-manager.js';
+
 export enum TileId {
   Debug01,
   Grass0,
@@ -9,14 +11,9 @@ export enum TileId {
   Hero,
 }
 
-export interface TileData {
-  id: TileId;
-  url: string;
-}
-
 const assetsDir = 'assets';
 
-export const tilesData: TileData[] = [
+export const tilesData: TileData<TileId>[] = [
   { id: TileId.Debug01, url: `${assetsDir}/debug01.png` },
 
   { id: TileId.Grass0, url: `${assetsDir}/grass-empty.png` },

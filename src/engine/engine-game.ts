@@ -3,13 +3,13 @@ import { FrameRateIterator } from './utils/frame-rate-iterator.js';
 import { Scene } from './scene/scene.js';
 import { ControlState } from './control-state.js';
 
-const TARGET_FPS = 15;
+const TARGET_FPS = 60;
 
-export class Game {
+export class EngineGame<TTileId> {
   private controlState: ControlState;
   private frameRateIterator: FrameRateIterator;
 
-  public constructor(private scene: Scene) {
+  public constructor(private scene: Scene<TTileId>) {
     this.controlState = {
       up: false,
       down: false,

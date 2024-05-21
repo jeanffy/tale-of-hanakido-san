@@ -1,15 +1,34 @@
-import { SpriteData2, SpriteId } from './data/sprites-data.js';
 import { GeomPoint } from './geom/geom-point.js';
 import { GeomRect } from './geom/geom-rect.js';
-import { Sprite, SpriteState } from './sprite.js';
+import { SpriteState } from './sprite-state.js';
+import { Sprite } from './sprite.js';
 import { TileManager } from './tile-manager.js';
 
-export class SpriteManager {
-  private sprites = new Map<SpriteId, Sprite>();
+export interface SpriteData2<TTileId, TSpriteId> {
+  id: TSpriteId;
+  states: {
+    label?: string;
+    tileId: TTileId;
+    bbox?: [number, number, number, number]; // x1, y1, x2, y2
+    anchor?: [number, number]; // dx, dy from bbox top-left corner, applies to bbox and hitBox
+    frames?: number;
+    delay?: number;
+  }[];
+  // 'bbox' indicates that hitBox is same as current state bbox (so in that case hitBox can vary)
+  // 'bbox' value is best to be used with 1 state or with states with same bbox
+  hitBox?: [number, number, number, number] | 'bbox'; // x1, y1, x2, y2
+  hitBoxAnchor?: [number, number];
+}
 
-  public constructor(private spritesData: SpriteData2[], private tileManager: TileManager) {}
+export class SpriteManager<TTileId, TSpriteId> {
+  private sprites = new Map<TSpriteId, Sprite<TTileId>>();
 
-  public getSprite(id: SpriteId): Sprite {
+  public constructor(
+    private spritesData: SpriteData2<TTileId, TSpriteId>[],
+    private tileManager: TileManager<TTileId>,
+  ) {}
+
+  public getSprite(id: TSpriteId): Sprite<TTileId> {
     const spriteData = this.spritesData.find(s => s.id === id);
     if (spriteData === undefined) {
       console.error(`No sprite data for id '${id}'`);
@@ -22,8 +41,8 @@ export class SpriteManager {
     return sprite;
   }
 
-  private createSprite(spriteData: SpriteData2): Sprite {
-    const states: SpriteState[] = [];
+  private createSprite(spriteData: SpriteData2<TTileId, TSpriteId>): Sprite<TTileId> {
+    const states: SpriteState<TTileId>[] = [];
     for (const state of spriteData.states) {
       const tile = this.tileManager.getTile(state.tileId);
 

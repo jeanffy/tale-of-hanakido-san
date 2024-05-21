@@ -1,3 +1,4 @@
+import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import { initializeBundle, finalizeBundle } from './etc/rollup-plugins.js';
 
@@ -13,6 +14,7 @@ const config = [
     plugins: [
       initializeBundle(),
       finalizeBundle(),
+      terser(),
       typescript()
     ],
   },

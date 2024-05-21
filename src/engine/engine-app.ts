@@ -1,24 +1,27 @@
-import { tilesData } from './game/data/tiles-data.js';
-import { sceneData } from './game/data/scene-data.js';
-import { DrawContext } from './game/draw-context.js';
-import { Factory } from './game/factory.js';
-import { Game } from './game/game.js';
+import { TileId, tilesData } from '../game/tiles.data.js';
+import { SceneDataLayerItem, sceneData } from '../game/scene.data.js';
+import { DrawContext } from './draw-context.js';
+import { EngineGame } from './engine-game.js';
+import { TileManager } from './tile-manager.js';
+import { Scene } from './scene/scene.js';
+import { SpriteManager } from './sprite-manager.js';
+import { SpriteId, spritesData } from '../game/sprites.data.js';
+import { GenericItem } from './scene/generic.item.js';
 
 const SCREEN_WIDTH = 500;
 const SCREEN_HEIGHT = 500;
 
-export class App {
+export abstract class EngineApp {
   private lastTimestamp: number | undefined;
-  private _game!: Game;
+  private _game!: EngineGame<TileId>;
   private animationRunning = true;
 
   public constructor(
     private canvas: HTMLCanvasElement,
     private drawContext: DrawContext,
-  ) {
-  }
+  ) {}
 
-  public get game(): Game {
+  public get game(): EngineGame<TileId> {
     return this._game;
   }
 
@@ -26,21 +29,51 @@ export class App {
     return this.animationRunning;
   }
 
-  public async start(factory: Factory): Promise<void> {
+  public async start(): Promise<void> {
     this.canvas.width = SCREEN_WIDTH;
     this.canvas.height = SCREEN_HEIGHT;
 
-    const tileManager = factory.getTileManager();
+    const tileManager = new TileManager<TileId>();
     await tileManager.loadTiles(tilesData);
 
-    const scene = factory.getScene(sceneData);
+    const spriteManager = new SpriteManager(spritesData, tileManager);
 
-    this._game = factory.getGame(scene);
+    const scene = new Scene<TileId>(
+      sceneData.layer0.map(item => this.createSceneItem(spriteManager, item)),
+      sceneData.layer1.map(item => this.createSceneItem(spriteManager, item)),
+      sceneData.layer2.map(item => this.createSceneItem(spriteManager, item)),
+      sceneData.layer3.map(item => this.createSceneItem(spriteManager, item)),
+    );
+
+    this._game = new EngineGame<TileId>(scene);
 
     this.setupControls();
 
     window.requestAnimationFrame(this.gameLoop.bind(this));
   }
+
+  protected abstract createSceneItem(
+    spriteManager: SpriteManager<TileId, SpriteId>,
+    dataItem: SceneDataLayerItem,
+  ): GenericItem<TileId>;
+
+  // {
+  //   const sprite = spriteManager.getSprite(dataItem.spriteId);
+
+  //   if (dataItem.type !== undefined) {
+  //     switch (dataItem.type) {
+  //       case SceneDataItemType.Chest:
+  //         return new ChestItem({ sprite, x: dataItem.x, y: dataItem.y });
+  //       case SceneDataItemType.Hero:
+  //         return new HeroItem({ sprite, x: dataItem.x, y: dataItem.y });
+  //       default:
+  //         console.error(`Unhandled item type '${dataItem.type}' at (x,y) = (${dataItem.x},${dataItem.y})`);
+  //         throw new Error();
+  //     }
+  //   }
+
+  //   return new GenericItem({ sprite, x: dataItem.x, y: dataItem.y });
+  // }
 
   public enableAnimation(enabled: boolean): void {
     this.animationRunning = enabled;

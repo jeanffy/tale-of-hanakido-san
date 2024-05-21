@@ -1,4 +1,5 @@
-import { TileId } from './tiles-data.js';
+import { SpriteData2 } from '../engine/sprite-manager.js';
+import { TileId } from './tiles.data.js';
 
 export enum SpriteId {
   Debug01 = 'debug01',
@@ -32,24 +33,12 @@ export enum SpriteHeroState {
   WalkingRight = 'walking-right',
 }
 
-export interface SpriteData2 {
-  id: SpriteId;
-  states: {
-    label?: string;
-    tileId: TileId;
-    bbox?: [number, number, number, number]; // x1, y1, x2, y2
-    anchor?: [number, number] // dx, dy from bbox top-left corner, applies to bbox and hitBox
-    frames?: number;
-    delay?: number;
-  }[],
-  // 'bbox' indicates that hitBox is same as current state bbox (so in that case hitBox can vary)
-  // 'bbox' value is best to be used with 1 state or with states with same bbox
-  hitBox?: [number, number, number, number] | 'bbox'; // x1, y1, x2, y2
-  hitBoxAnchor?: [number, number];
-}
-
-export const spritesData: SpriteData2[] = [
-  { id: SpriteId.Debug01, states: [{ tileId: TileId.Debug01, bbox: [100, 100, 250, 250], anchor: [0, -50] }], hitBox: [50, 50, 100, 100] },
+export const spritesData: SpriteData2<TileId, SpriteId>[] = [
+  {
+    id: SpriteId.Debug01,
+    states: [{ tileId: TileId.Debug01, bbox: [100, 100, 250, 250], anchor: [0, -50] }],
+    hitBox: [50, 50, 100, 100],
+  },
   { id: SpriteId.Grass0, states: [{ tileId: TileId.Grass0 }] },
   { id: SpriteId.Grass1, states: [{ tileId: TileId.Grass1 }] },
   { id: SpriteId.Bush, states: [{ tileId: TileId.Bush }], hitBox: [3, 3, 35, 35] },
@@ -60,10 +49,15 @@ export const spritesData: SpriteData2[] = [
       { label: SpriteChestState.Opening, tileId: TileId.Chest, bbox: [0, 0, 65, 53], frames: 3, delay: 200 },
       { label: SpriteChestState.Open, tileId: TileId.Chest, bbox: [132, 0, 197, 53] },
     ],
-    hitBox: [0, 7, 59, 48]
+    hitBox: [0, 7, 59, 48],
   },
   { id: SpriteId.Book, states: [{ tileId: TileId.Book }], hitBox: 'bbox' },
-  { id: SpriteId.Plant, states: [{ tileId: TileId.Plant, bbox: [0, 51, 44, 86], anchor: [0, -51] }], hitBox: 'bbox', hitBoxAnchor: [0, -51] },
+  {
+    id: SpriteId.Plant,
+    states: [{ tileId: TileId.Plant, bbox: [0, 51, 44, 86], anchor: [0, -51] }],
+    hitBox: 'bbox',
+    hitBoxAnchor: [0, -51],
+  },
   { id: SpriteId.PlantOverlay, states: [{ tileId: TileId.Plant, bbox: [0, 0, 44, 50] }] },
   {
     id: SpriteId.Hero,
@@ -78,5 +72,5 @@ export const spritesData: SpriteData2[] = [
       { label: SpriteHeroState.WalkingRight, tileId: TileId.Hero, bbox: [3, 201, 41, 266], frames: 4 },
     ],
     hitBox: [5, 30, 35, 65],
-  }
+  },
 ];

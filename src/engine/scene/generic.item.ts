@@ -2,23 +2,24 @@ import { ControlState } from '../control-state.js';
 import { DrawContext } from '../draw-context.js';
 import { GeomPoint } from '../geom/geom-point.js';
 import { GeomRect } from '../geom/geom-rect.js';
-import { Sprite, SpriteStateUpdateOut } from '../sprite.js';
+import { Sprite } from '../sprite.js';
 import { getRandomId } from '../utils/random-id.js';
 import { SceneCollider } from './scene-collider.js';
+import { SpriteStateUpdateOut } from '../sprite-state.js';
 
-export interface SceneItemInitParams {
-  sprite: Sprite;
+export interface GenericItemInitParams<TTileId> {
+  sprite: Sprite<TTileId>;
   x: number;
   y: number;
 }
 
-export class SceneItem {
+export class GenericItem<TTileId> {
   protected _uniqueId: string;
-  protected _sprite: Sprite;
+  protected _sprite: Sprite<TTileId>;
   protected _position: GeomPoint;
   protected _lastSpriteUpdateOut!: SpriteStateUpdateOut;
 
-  public constructor(params: SceneItemInitParams) {
+  public constructor(params: GenericItemInitParams<TTileId>) {
     this._uniqueId = getRandomId();
     this._sprite = params.sprite;
     this._position = new GeomPoint(params.x, params.y);
@@ -32,7 +33,7 @@ export class SceneItem {
     return this._uniqueId;
   }
 
-  public get sprite(): Sprite {
+  public get sprite(): Sprite<TTileId> {
     return this._sprite;
   }
 
@@ -48,9 +49,9 @@ export class SceneItem {
     return this._sprite.hitBox;
   }
 
-  public processInputs(controlState: ControlState, collider: SceneCollider): void {}
+  public processInputs(controlState: ControlState, collider: SceneCollider<TTileId>): void {}
 
-  public update(dt: number, collider: SceneCollider): void {
+  public update(dt: number, collider: SceneCollider<TTileId>): void {
     this._lastSpriteUpdateOut = this._sprite.update(dt);
   }
 

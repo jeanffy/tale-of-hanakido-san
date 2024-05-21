@@ -4,17 +4,20 @@
 import { GeomPoint } from '../geom/geom-point.js';
 import { GeomRect } from '../geom/geom-rect.js';
 import { Sprite } from '../sprite.js';
-import { SceneItem } from './scene-item.js';
+import { GenericItem } from './generic.item.js';
 
 export interface ColliderOptions {
   tolerance?: number;
 }
 
-export class SceneCollider {
-  public constructor(private items: SceneItem[]) {
-  }
+export class SceneCollider<TTileId> {
+  public constructor(private items: GenericItem<TTileId>[]) {}
 
-  public anyItemCollidesWith(checkedItem: SceneItem, position: GeomPoint, options?: ColliderOptions): SceneItem | undefined {
+  public anyItemCollidesWith(
+    checkedItem: GenericItem<TTileId>,
+    position: GeomPoint,
+    options?: ColliderOptions,
+  ): GenericItem<TTileId> | undefined {
     for (const sceneItem of this.items) {
       // don't check item against items that do not participate in collisions
       // don't check item against itself
@@ -22,14 +25,22 @@ export class SceneCollider {
         continue;
       }
 
-      if (this.checkCollision(checkedItem.sprite, position, sceneItem.sprite, sceneItem.position, options?.tolerance ?? 0)) {
+      if (
+        this.checkCollision(checkedItem.sprite, position, sceneItem.sprite, sceneItem.position, options?.tolerance ?? 0)
+      ) {
         return sceneItem;
       }
     }
     return undefined;
   }
 
-  private checkCollision(sprite1: Sprite, position1: GeomPoint, sprite2: Sprite, position2: GeomPoint, tolerance: number): boolean {
+  private checkCollision(
+    sprite1: Sprite<TTileId>,
+    position1: GeomPoint,
+    sprite2: Sprite<TTileId>,
+    position2: GeomPoint,
+    tolerance: number,
+  ): boolean {
     if (sprite1.hitBox instanceof GeomRect) {
       const hitBox1 = new GeomRect(
         position1.x - (sprite1.hitBoxAnchor?.x ?? 0) + sprite1.hitBox.x - tolerance,

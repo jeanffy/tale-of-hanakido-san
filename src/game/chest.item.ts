@@ -1,11 +1,12 @@
-import { SpriteChestState } from '../data/sprites-data.js';
-import { SceneCollider } from './scene-collider.js';
-import { SceneItem, SceneItemInitParams } from './scene-item.js';
+import { SpriteChestState } from './sprites.data.js';
+import { SceneCollider } from '../engine/scene/scene-collider.js';
+import { GenericItem, GenericItemInitParams } from '../engine/scene/generic.item.js';
+import { TileId } from './tiles.data.js';
 
-export class SceneChest extends SceneItem {
+export class ChestItem extends GenericItem<TileId> {
   private isOpen = false;
 
-  public constructor(params: SceneItemInitParams) {
+  public constructor(params: GenericItemInitParams<TileId>) {
     super(params);
     this._sprite.selectState(SpriteChestState.Closed);
   }
@@ -20,7 +21,7 @@ export class SceneChest extends SceneItem {
     }
   }
 
-  public update(dt: number, collider: SceneCollider): void {
+  public update(dt: number, collider: SceneCollider<TileId>): void {
     super.update(dt, collider);
     if (this._lastSpriteUpdateOut.loopedAnimation) {
       this._sprite.selectState(this.isOpen ? SpriteChestState.Open : SpriteChestState.Closed);

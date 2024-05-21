@@ -19,5 +19,14 @@ When changes are made to the code, no need to restart debugging, nor `npm start`
 
 ## Publish
 
-- `npm run build` if not already done
-- `npm run publish`: game files are installed into the `docs` folder, used by Github Pages
+`npm run publish`: game files are installed into the `docs` folder, used by Github Pages
+
+Publish automatically run `format` and `build`.
+
+## Format
+
+`npm run format`: formatting files with Prettier
+
+## Build
+
+`npm run build`: build code in `dist` folder
