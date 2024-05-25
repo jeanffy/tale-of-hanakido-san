@@ -2,7 +2,7 @@ import { GeomPoint } from './geom/geom-point.js';
 import { GeomRect } from './geom/geom-rect.js';
 import { SpriteState } from './sprite-state.js';
 import { Sprite } from './sprite.js';
-import { TileManager } from './tile-manager.js';
+import { TextureManager } from './texture-manager.js';
 
 export interface SpriteData2<TTileId, TSpriteId> {
   id: TSpriteId;
@@ -10,7 +10,7 @@ export interface SpriteData2<TTileId, TSpriteId> {
     label?: string;
     tileId: TTileId;
     bbox?: [number, number, number, number]; // x1, y1, x2, y2
-    anchor?: [number, number]; // dx, dy from bbox top-left corner, applies to bbox and hitBox
+    anchor?: [number, number]; // dx, dy from bbox top-left corner, applies to bbox only, hitBox has another anchor
     frames?: number;
     delay?: number;
   }[];
@@ -25,7 +25,7 @@ export class SpriteManager<TTileId, TSpriteId> {
 
   public constructor(
     private spritesData: SpriteData2<TTileId, TSpriteId>[],
-    private tileManager: TileManager<TTileId>,
+    private textureManager: TextureManager<TTileId>,
   ) {}
 
   public getSprite(id: TSpriteId): Sprite<TTileId> {
@@ -44,7 +44,7 @@ export class SpriteManager<TTileId, TSpriteId> {
   private createSprite(spriteData: SpriteData2<TTileId, TSpriteId>): Sprite<TTileId> {
     const states: SpriteState<TTileId>[] = [];
     for (const state of spriteData.states) {
-      const tile = this.tileManager.getTile(state.tileId);
+      const texture = this.textureManager.getTexture(state.tileId);
 
       let bbox: GeomRect;
       if (state.bbox !== undefined) {
@@ -55,7 +55,7 @@ export class SpriteManager<TTileId, TSpriteId> {
           state.bbox[3] - state.bbox[1] + 1,
         );
       } else {
-        bbox = tile.imageBBox;
+        bbox = texture.imageBBox;
       }
 
       let anchor: GeomPoint;
@@ -65,7 +65,7 @@ export class SpriteManager<TTileId, TSpriteId> {
         anchor = new GeomPoint(0, 0);
       }
 
-      states.push(new SpriteState(state.label, tile, bbox, anchor, state.frames ?? 1, state.delay ?? 100));
+      states.push(new SpriteState(state.label, texture, bbox, anchor, state.frames ?? 1, state.delay ?? 100));
     }
 
     let hitBox: GeomRect | undefined;

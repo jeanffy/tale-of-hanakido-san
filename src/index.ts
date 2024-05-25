@@ -1,6 +1,9 @@
 import { App } from './game/app.js';
 import { CanvasDrawContext } from './canvas-draw-context.js';
 import { UI } from './ui.js';
+import { texturesData } from './game/textures.data.js';
+import { spritesData } from './game/sprites.data.js';
+import { sceneData } from './game/scene.data.js';
 
 const canvasDiv = (document.getElementById('canvas') as HTMLCanvasElement) ?? undefined;
 if (canvasDiv === undefined) {
@@ -31,4 +34,4 @@ ui.stepButton.addEventListener('click', (event: MouseEvent): void => {
   ui.update();
 });
 
-await app.start();
+await app.start(texturesData, spritesData, sceneData);

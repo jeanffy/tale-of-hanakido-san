@@ -2,11 +2,11 @@ import { DrawContext } from './draw-context.js';
 import { GeomRect } from './geom/geom-rect.js';
 import { GeomPoint } from './geom/geom-point.js';
 
-export class Tile<TTileId> {
+export class Texture<TTextureId> {
   public imageBBox: GeomRect;
 
   public constructor(
-    public id: TTileId,
+    public id: TTextureId,
     private image: HTMLImageElement,
   ) {
     this.imageBBox = new GeomRect(0, 0, image.width, image.height);

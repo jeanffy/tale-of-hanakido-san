@@ -1,17 +1,17 @@
-import { SceneDataItemType, SceneDataLayerItem } from './scene.data.js';
-import { SpriteId } from './sprites.data.js';
-import { TileId } from './tiles.data.js';
-import { EngineApp } from '../engine/engine-app.js';
+import { SceneDataItemType } from './scene.data.js';
+import { TextureId } from './textures.data.js';
+import { EngineApp, SceneDataLayerItem } from '../engine/engine-app.js';
 import { GenericItem } from '../engine/scene/generic.item.js';
 import { SpriteManager } from '../engine/sprite-manager.js';
 import { ChestItem } from './chest.item.js';
 import { HeroItem } from './hero.item.js';
+import { SpriteId } from './sprites.data.js';
 
-export class App extends EngineApp {
+export class App extends EngineApp<TextureId, SpriteId, SceneDataItemType> {
   protected createSceneItem(
-    spriteManager: SpriteManager<TileId, SpriteId>,
-    dataItem: SceneDataLayerItem,
-  ): GenericItem<TileId> {
+    spriteManager: SpriteManager<TextureId, SpriteId>,
+    dataItem: SceneDataLayerItem<SpriteId, SceneDataItemType>,
+  ): GenericItem<TextureId> {
     const sprite = spriteManager.getSprite(dataItem.spriteId);
 
     if (dataItem.type !== undefined) {

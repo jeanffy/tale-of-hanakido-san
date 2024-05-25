@@ -1,11 +1,11 @@
-import { EngineApp } from './engine/engine-app.js';
+import { App } from './game/app.js';
 
 export class UI {
   public stopButton = document.getElementById('ui-btn-stop') as HTMLButtonElement;
   public startButton = document.getElementById('ui-btn-start') as HTMLButtonElement;
   public stepButton = document.getElementById('ui-btn-step') as HTMLButtonElement;
 
-  public constructor(private app: EngineApp) {
+  public constructor(private app: App) {
     this.update();
   }
 

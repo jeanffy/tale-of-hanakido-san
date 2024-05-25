@@ -5,25 +5,25 @@ import { GenericItem, GenericItemInitParams } from '../engine/scene/generic.item
 import { SceneCollider } from '../engine/scene/scene-collider.js';
 import { SpriteHeroState } from './sprites.data.js';
 import { ChestItem } from './chest.item.js';
-import { TileId } from './tiles.data.js';
+import { TextureId } from './textures.data.js';
 
 const SPEED_WALKING = 0.1;
 const SPEED_RUNNING = 0.2;
 
-export class HeroItem extends GenericItem<TileId> {
+export class HeroItem extends GenericItem<TextureId> {
   private movingDirectionX: number;
   private movingDirectionY: number;
   private state: SpriteHeroState;
   private speed = SPEED_WALKING;
 
-  public constructor(params: GenericItemInitParams<TileId>) {
+  public constructor(params: GenericItemInitParams<TextureId>) {
     super(params);
     this.state = SpriteHeroState.StillDown;
     this.movingDirectionX = 0;
     this.movingDirectionY = 0;
   }
 
-  public processInputs(controlState: ControlState, collider: SceneCollider<TileId>): void {
+  public processInputs(controlState: ControlState, collider: SceneCollider<TextureId>): void {
     super.processInputs(controlState, collider);
 
     this.state = SpriteHeroState.StillDown;
@@ -59,7 +59,7 @@ export class HeroItem extends GenericItem<TileId> {
     }
   }
 
-  public update(dt: number, collider: SceneCollider<TileId>): void {
+  public update(dt: number, collider: SceneCollider<TextureId>): void {
     super.update(dt, collider);
 
     switch (this.state) {
@@ -86,7 +86,7 @@ export class HeroItem extends GenericItem<TileId> {
     super.render(drawContext);
   }
 
-  private handleWalk(dt: number, direction: GeomVector, collider: SceneCollider<TileId>): void {
+  private handleWalk(dt: number, direction: GeomVector, collider: SceneCollider<TextureId>): void {
     const moveDirection = direction.scale(this.speed * dt);
     const nextPosition = this._position.moveByVector(moveDirection);
     if (collider.anyItemCollidesWith(this, nextPosition)) {

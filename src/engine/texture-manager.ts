@@ -1,35 +1,35 @@
-import { Tile } from './tile.js';
+import { Texture } from './texture.js';
 
-export interface TileData<TTileId> {
-  id: TTileId;
+export interface TextureData<TTextureId> {
+  id: TTextureId;
   url: string;
 }
 
-export class TileManager<TTileId> {
-  private tiles = new Map<TTileId, Tile<TTileId>>();
+export class TextureManager<TTextureId> {
+  private textures = new Map<TTextureId, Texture<TTextureId>>();
 
-  public async loadTiles(dataTiles: TileData<TTileId>[]): Promise<void> {
-    for (const dataTile of dataTiles) {
-      const tile = await new Promise<Tile<TTileId>>((resolve, reject) => {
+  public async loadTextures(dataTextures: TextureData<TTextureId>[]): Promise<void> {
+    for (const dataTexture of dataTextures) {
+      const texture = await new Promise<Texture<TTextureId>>((resolve, reject) => {
         const image = new Image();
         image.onload = () => {
-          resolve(new Tile(dataTile.id, image));
+          resolve(new Texture(dataTexture.id, image));
         };
         image.onerror = () => {
           reject();
         };
-        image.src = dataTile.url;
+        image.src = dataTexture.url;
       });
-      this.tiles.set(dataTile.id, tile);
+      this.textures.set(dataTexture.id, texture);
     }
   }
 
-  public getTile(id: TTileId): Tile<TTileId> {
-    const tile = this.tiles.get(id);
-    if (tile === undefined) {
-      throw new Error(`No tile for id '${id}'`);
+  public getTexture(id: TTextureId): Texture<TTextureId> {
+    const texture = this.textures.get(id);
+    if (texture === undefined) {
+      throw new Error(`No texture for id '${id}'`);
     }
-    return tile;
+    return texture;
   }
 
   public scaleSprite(img: HTMLImageElement, scale: number): HTMLImageElement {

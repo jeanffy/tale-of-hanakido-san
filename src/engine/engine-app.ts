@@ -1,19 +1,31 @@
-import { TileId, tilesData } from '../game/tiles.data.js';
-import { SceneDataLayerItem, sceneData } from '../game/scene.data.js';
 import { DrawContext } from './draw-context.js';
 import { EngineGame } from './engine-game.js';
-import { TileManager } from './tile-manager.js';
+import { TextureData, TextureManager } from './texture-manager.js';
 import { Scene } from './scene/scene.js';
-import { SpriteManager } from './sprite-manager.js';
-import { SpriteId, spritesData } from '../game/sprites.data.js';
+import { SpriteData2, SpriteManager } from './sprite-manager.js';
 import { GenericItem } from './scene/generic.item.js';
 
 const SCREEN_WIDTH = 500;
 const SCREEN_HEIGHT = 500;
 
-export abstract class EngineApp {
+export interface SceneDataLayerItem<TSpriteId, TItemType> {
+  spriteId: TSpriteId;
+  type?: TItemType;
+  // (x,y) = position of anchor point (default is top-left corner of sprite)
+  x: number;
+  y: number;
+}
+
+export interface SceneData<TSpriteId, TItemType> {
+  layer0: SceneDataLayerItem<TSpriteId, TItemType>[];
+  layer1: SceneDataLayerItem<TSpriteId, TItemType>[];
+  layer2: SceneDataLayerItem<TSpriteId, TItemType>[];
+  layer3: SceneDataLayerItem<TSpriteId, TItemType>[];
+}
+
+export abstract class EngineApp<TTileId, TSpriteId, TItemType> {
   private lastTimestamp: number | undefined;
-  private _game!: EngineGame<TileId>;
+  private _game!: EngineGame<TTileId>;
   private animationRunning = true;
 
   public constructor(
@@ -21,7 +33,7 @@ export abstract class EngineApp {
     private drawContext: DrawContext,
   ) {}
 
-  public get game(): EngineGame<TileId> {
+  public get game(): EngineGame<TTileId> {
     return this._game;
   }
 
@@ -29,23 +41,27 @@ export abstract class EngineApp {
     return this.animationRunning;
   }
 
-  public async start(): Promise<void> {
+  public async start(
+    tilesData: TextureData<TTileId>[],
+    spritesData: SpriteData2<TTileId, TSpriteId>[],
+    sceneData: SceneData<TSpriteId, TItemType>,
+  ): Promise<void> {
     this.canvas.width = SCREEN_WIDTH;
     this.canvas.height = SCREEN_HEIGHT;
 
-    const tileManager = new TileManager<TileId>();
-    await tileManager.loadTiles(tilesData);
+    const tileManager = new TextureManager<TTileId>();
+    await tileManager.loadTextures(tilesData);
 
     const spriteManager = new SpriteManager(spritesData, tileManager);
 
-    const scene = new Scene<TileId>(
+    const scene = new Scene<TTileId>(
       sceneData.layer0.map(item => this.createSceneItem(spriteManager, item)),
       sceneData.layer1.map(item => this.createSceneItem(spriteManager, item)),
       sceneData.layer2.map(item => this.createSceneItem(spriteManager, item)),
       sceneData.layer3.map(item => this.createSceneItem(spriteManager, item)),
     );
 
-    this._game = new EngineGame<TileId>(scene);
+    this._game = new EngineGame<TTileId>(scene);
 
     this.setupControls();
 
@@ -53,9 +69,9 @@ export abstract class EngineApp {
   }
 
   protected abstract createSceneItem(
-    spriteManager: SpriteManager<TileId, SpriteId>,
-    dataItem: SceneDataLayerItem,
-  ): GenericItem<TileId>;
+    spriteManager: SpriteManager<TTileId, TSpriteId>,
+    dataItem: SceneDataLayerItem<TSpriteId, TItemType>,
+  ): GenericItem<TTileId>;
 
   // {
   //   const sprite = spriteManager.getSprite(dataItem.spriteId);

@@ -2,7 +2,7 @@ import { DrawContext } from './draw-context.js';
 import { GeomPoint } from './geom/geom-point.js';
 import { GeomRect } from './geom/geom-rect.js';
 import { GeomVector } from './geom/geom-vector.js';
-import { Tile } from './tile.js';
+import { Texture } from './texture.js';
 
 export interface SpriteStateUpdateOut {
   loopedAnimation: boolean;
@@ -16,9 +16,9 @@ export class SpriteState<TTileId> {
 
   public constructor(
     public label: string | undefined,
-    private tile: Tile<TTileId>,
-    private _bbox: GeomRect, // bbox inside the tile image (relative pixel coordinates)
-    private anchor: GeomPoint, // coordinates inside the tile image (relative pixel coordinates)
+    private texture: Texture<TTileId>,
+    private _bbox: GeomRect, // bbox inside the texture image (relative pixel coordinates)
+    private anchor: GeomPoint, // coordinates inside the texture image (relative pixel coordinates)
     private frames: number, // number of frames for animation
     private delay: number, // delay (milliseconds) between each frame
   ) {
@@ -69,6 +69,6 @@ export class SpriteState<TTileId> {
   }
 
   public render(drawContext: DrawContext, position: GeomPoint): void {
-    this.tile.render(drawContext, this._bbox, position.moveByVector(new GeomVector(-this.anchor.x, -this.anchor.y)));
+    this.texture.render(drawContext, this._bbox, position.moveByVector(new GeomVector(-this.anchor.x, -this.anchor.y)));
   }
 }

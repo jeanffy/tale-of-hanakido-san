@@ -1,3 +1,4 @@
+import { SceneData } from '../engine/engine-app.js';
 import { SpriteId } from './sprites.data.js';
 
 export enum SceneDataItemType {
@@ -5,22 +6,7 @@ export enum SceneDataItemType {
   Hero,
 }
 
-export interface SceneDataLayerItem {
-  spriteId: SpriteId;
-  type?: SceneDataItemType;
-  // (x,y) = position (top-left corner of sprite)
-  x: number;
-  y: number;
-}
-
-export interface SceneData {
-  layer0: SceneDataLayerItem[];
-  layer1: SceneDataLayerItem[];
-  layer2: SceneDataLayerItem[];
-  layer3: SceneDataLayerItem[];
-}
-
-export const sceneData: SceneData = {
+export const sceneData: SceneData<SpriteId, SceneDataItemType> = {
   layer0: [
     { spriteId: SpriteId.Grass0, x: 150, y: 250 },
     { spriteId: SpriteId.Grass1, x: 189, y: 250 },
