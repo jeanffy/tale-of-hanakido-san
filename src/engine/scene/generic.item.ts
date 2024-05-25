@@ -5,7 +5,6 @@ import { GeomRect } from '../geom/geom-rect.js';
 import { Sprite } from '../sprite.js';
 import { getRandomId } from '../utils/random-id.js';
 import { SceneCollider } from './scene-collider.js';
-import { SpriteStateUpdateOut } from '../sprite-state.js';
 
 export interface GenericItemInitParams<TTileId> {
   sprite: Sprite<TTileId>;
@@ -17,7 +16,6 @@ export class GenericItem<TTileId> {
   protected _uniqueId: string;
   protected _sprite: Sprite<TTileId>;
   protected _position: GeomPoint;
-  protected _lastSpriteUpdateOut!: SpriteStateUpdateOut;
 
   public constructor(params: GenericItemInitParams<TTileId>) {
     this._uniqueId = getRandomId();
@@ -52,8 +50,13 @@ export class GenericItem<TTileId> {
   public processInputs(controlState: ControlState, collider: SceneCollider<TTileId>): void {}
 
   public update(dt: number, collider: SceneCollider<TTileId>): void {
-    this._lastSpriteUpdateOut = this._sprite.update(dt);
+    const spriteUpdateOut = this._sprite.update(dt);
+    if (spriteUpdateOut.loopedAnimation) {
+      this.spriteAnimationLooped();
+    }
   }
+
+  protected spriteAnimationLooped(): void {}
 
   public render(drawContext: DrawContext): void {
     this._sprite.render(drawContext, this._position);

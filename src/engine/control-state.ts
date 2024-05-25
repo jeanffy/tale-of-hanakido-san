@@ -4,5 +4,6 @@ export interface ControlState {
   left: boolean;
   right: boolean;
   control: boolean;
-  action: boolean;
+  action1: boolean;
+  action2: boolean;
 }

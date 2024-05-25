@@ -23,8 +23,9 @@ export class ChestItem extends GenericItem<TextureId> {
 
   public update(dt: number, collider: SceneCollider<TextureId>): void {
     super.update(dt, collider);
-    if (this._lastSpriteUpdateOut.loopedAnimation) {
-      this._sprite.selectState(this.isOpen ? SpriteChestState.Open : SpriteChestState.Closed);
-    }
+  }
+
+  protected spriteAnimationLooped(): void {
+    this._sprite.selectState(this.isOpen ? SpriteChestState.Open : SpriteChestState.Closed);
   }
 }

@@ -31,6 +31,11 @@ export enum SpriteHeroState {
   WalkingDown = 'walking-down',
   WalkingLeft = 'walking-left',
   WalkingRight = 'walking-right',
+
+  SwordUp = 'sword-up',
+  SwordDown = 'sword-down',
+  SwordLeft = 'sword-left',
+  SwordRight = 'sword-right',
 }
 
 export const spritesData: SpriteData2<TextureId, SpriteId>[] = [
@@ -66,10 +71,15 @@ export const spritesData: SpriteData2<TextureId, SpriteId>[] = [
       { label: SpriteHeroState.StillDown, tileId: TextureId.Hero, bbox: [0, 0, 45, 66] },
       { label: SpriteHeroState.StillLeft, tileId: TextureId.Hero, bbox: [3, 135, 41, 200] },
       { label: SpriteHeroState.StillRight, tileId: TextureId.Hero, bbox: [3, 201, 41, 266] },
+
       { label: SpriteHeroState.WalkingUp, tileId: TextureId.Hero, bbox: [0, 66, 44, 134], frames: 4 },
       { label: SpriteHeroState.WalkingDown, tileId: TextureId.Hero, bbox: [0, 0, 44, 65], frames: 4 },
       { label: SpriteHeroState.WalkingLeft, tileId: TextureId.Hero, bbox: [3, 135, 41, 200], frames: 4 },
       { label: SpriteHeroState.WalkingRight, tileId: TextureId.Hero, bbox: [3, 201, 41, 266], frames: 4 },
+
+      { label: SpriteHeroState.SwordUp, tileId: TextureId.Hero, bbox: [0, 342, 50, 404], frames: 4, delay: 50 },
+      { label: SpriteHeroState.SwordDown, tileId: TextureId.Hero, bbox: [0, 267, 47, 338], frames: 4, delay: 50 },
+      { label: SpriteHeroState.SwordLeft, tileId: TextureId.Hero, bbox: [0, 407, 59, 469], frames: 4, delay: 50 },
     ],
     hitBox: [5, 30, 35, 65],
   },

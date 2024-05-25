@@ -16,7 +16,8 @@ export class EngineGame<TTileId> {
       left: false,
       right: false,
       control: false,
-      action: false,
+      action1: false,
+      action2: false,
     };
     this.frameRateIterator = new FrameRateIterator({ targetFps: TARGET_FPS });
   }
@@ -38,7 +39,8 @@ export class EngineGame<TTileId> {
     this.controlState.left = state.left ?? this.controlState.left;
     this.controlState.right = state.right ?? this.controlState.right;
     this.controlState.control = state.control ?? this.controlState.control;
-    this.controlState.action = state.action ?? this.controlState.action;
+    this.controlState.action1 = state.action1 ?? this.controlState.action1;
+    this.controlState.action2 = state.action2 ?? this.controlState.action2;
   }
 
   private render(drawContext: DrawContext): void {

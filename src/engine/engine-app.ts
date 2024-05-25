@@ -101,7 +101,10 @@ export abstract class EngineApp<TTileId, TSpriteId, TItemType> {
   public goToNextFrame(dt: number): void {
     this.drawBackground();
     this._game.nextFrame(this.drawContext, dt);
-    this._game.updateControlState({ action: false });
+    this._game.updateControlState({
+      action1: false,
+      action2: false,
+    });
   }
 
   private gameLoop(timestamp: number): void {
@@ -180,7 +183,11 @@ export abstract class EngineApp<TTileId, TSpriteId, TItemType> {
           event.preventDefault();
           break;
         case 'keyx':
-          this.game.updateControlState({ action: true });
+          this.game.updateControlState({ action1: true });
+          event.preventDefault();
+          break;
+        case 'keyc':
+          this.game.updateControlState({ action2: true });
           event.preventDefault();
           break;
       }
