@@ -1,4 +1,4 @@
-import { SpriteData2 } from '../engine/sprite-manager.js';
+import { SpriteData } from '../engine/data.js';
 import { TextureId } from './textures.data.js';
 
 export enum SpriteId {
@@ -38,7 +38,7 @@ export enum SpriteHeroState {
   SwordRight = 'sword-right',
 }
 
-export const spritesData: SpriteData2<TextureId, SpriteId>[] = [
+export const spritesData: SpriteData<TextureId, SpriteId>[] = [
   {
     id: SpriteId.Debug01,
     states: [{ tileId: TextureId.Debug01, bbox: [100, 100, 250, 250], anchor: [0, -50] }],

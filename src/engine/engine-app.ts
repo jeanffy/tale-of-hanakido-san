@@ -2,7 +2,7 @@ import { DrawContext } from './draw-context.js';
 import { EngineGame } from './engine-game.js';
 import { TextureData, TextureManager } from './texture-manager.js';
 import { Scene } from './scene/scene.js';
-import { SpriteData2, SpriteManager } from './sprite-manager.js';
+import { SpriteData, SpriteManager } from './sprite-manager.js';
 import { GenericItem } from './scene/generic.item.js';
 
 const SCREEN_WIDTH = 500;
@@ -43,7 +43,7 @@ export abstract class EngineApp<TTileId, TSpriteId, TItemType> {
 
   public async start(
     tilesData: TextureData<TTileId>[],
-    spritesData: SpriteData2<TTileId, TSpriteId>[],
+    spritesData: SpriteData<TTileId, TSpriteId>[],
     sceneData: SceneData<TSpriteId, TItemType>,
   ): Promise<void> {
     this.canvas.width = SCREEN_WIDTH;

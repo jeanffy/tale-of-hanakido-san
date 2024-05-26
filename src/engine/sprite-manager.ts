@@ -1,30 +1,15 @@
+import { SpriteData } from './data.js';
 import { GeomPoint } from './geom/geom-point.js';
 import { GeomRect } from './geom/geom-rect.js';
 import { SpriteState } from './sprite-state.js';
 import { Sprite } from './sprite.js';
 import { TextureManager } from './texture-manager.js';
 
-export interface SpriteData2<TTileId, TSpriteId> {
-  id: TSpriteId;
-  states: {
-    label?: string;
-    tileId: TTileId;
-    bbox?: [number, number, number, number]; // x1, y1, x2, y2
-    anchor?: [number, number]; // dx, dy from bbox top-left corner, applies to bbox only, hitBox has another anchor
-    frames?: number;
-    delay?: number;
-  }[];
-  // 'bbox' indicates that hitBox is same as current state bbox (so in that case hitBox can vary)
-  // 'bbox' value is best to be used with 1 state or with states with same bbox
-  hitBox?: [number, number, number, number] | 'bbox'; // x1, y1, x2, y2
-  hitBoxAnchor?: [number, number];
-}
-
 export class SpriteManager<TTileId, TSpriteId> {
   private sprites = new Map<TSpriteId, Sprite<TTileId>>();
 
   public constructor(
-    private spritesData: SpriteData2<TTileId, TSpriteId>[],
+    private spritesData: SpriteData<TTileId, TSpriteId>[],
     private textureManager: TextureManager<TTileId>,
   ) {}
 
@@ -41,7 +26,7 @@ export class SpriteManager<TTileId, TSpriteId> {
     return sprite;
   }
 
-  private createSprite(spriteData: SpriteData2<TTileId, TSpriteId>): Sprite<TTileId> {
+  private createSprite(spriteData: SpriteData<TTileId, TSpriteId>): Sprite<TTileId> {
     const states: SpriteState<TTileId>[] = [];
     for (const state of spriteData.states) {
       const texture = this.textureManager.getTexture(state.tileId);

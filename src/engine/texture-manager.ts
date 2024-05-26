@@ -1,9 +1,5 @@
+import { TextureData } from './data.js';
 import { Texture } from './texture.js';
-
-export interface TextureData<TTextureId> {
-  id: TTextureId;
-  url: string;
-}
 
 export class TextureManager<TTextureId> {
   private textures = new Map<TTextureId, Texture<TTextureId>>();

@@ -1,4 +1,4 @@
-import { TextureData } from '../engine/texture-manager.js';
+import { TextureData } from '../engine/data.js';
 
 export enum TextureId {
   Debug01,
