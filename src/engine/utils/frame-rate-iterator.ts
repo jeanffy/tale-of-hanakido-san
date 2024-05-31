@@ -12,8 +12,8 @@ export class FrameRateIterator {
     this.targetFps = params.targetFps;
   }
 
-  public shouldRender(dt: number): Promise<boolean> {
-    this.timer += dt;
+  public shouldRender(deltaTime: number): Promise<boolean> {
+    this.timer += deltaTime;
     if (this.timer > 1000) {
       this.fps = this.frameCountInOneSecond;
       this.frameCountInOneSecond = 0;

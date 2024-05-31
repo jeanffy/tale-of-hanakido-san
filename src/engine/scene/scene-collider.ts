@@ -3,21 +3,21 @@
 // import { GeomVector } from '../geom/geom-vector.js';
 import { GeomPoint } from '../geom/geom-point.js';
 import { GeomRect } from '../geom/geom-rect.js';
-import { Sprite } from '../sprite.js';
+import { Sprite } from '../sprite/sprite.js';
 import { GenericItem } from './generic.item.js';
 
 export interface ColliderOptions {
   tolerance?: number;
 }
 
-export class SceneCollider<TTileId> {
-  public constructor(private items: GenericItem<TTileId>[]) {}
+export class SceneCollider {
+  public constructor(private items: GenericItem[]) {}
 
   public anyItemCollidesWith(
-    checkedItem: GenericItem<TTileId>,
+    checkedItem: GenericItem,
     position: GeomPoint,
     options?: ColliderOptions,
-  ): GenericItem<TTileId> | undefined {
+  ): GenericItem | undefined {
     for (const sceneItem of this.items) {
       // don't check item against items that do not participate in collisions
       // don't check item against itself
@@ -35,9 +35,9 @@ export class SceneCollider<TTileId> {
   }
 
   private checkCollision(
-    sprite1: Sprite<TTileId>,
+    sprite1: Sprite,
     position1: GeomPoint,
-    sprite2: Sprite<TTileId>,
+    sprite2: Sprite,
     position2: GeomPoint,
     tolerance: number,
   ): boolean {

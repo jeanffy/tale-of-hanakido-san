@@ -1,31 +1,17 @@
 import { DrawContext } from './draw-context.js';
 import { EngineGame } from './engine-game.js';
-import { TextureData, TextureManager } from './texture-manager.js';
+import { TextureManager } from './texture/texture-manager.js';
 import { Scene } from './scene/scene.js';
-import { SpriteData, SpriteManager } from './sprite-manager.js';
+import { SpriteManager } from './sprite/sprite-manager.js';
 import { GenericItem } from './scene/generic.item.js';
+import { SceneData, SceneLayerItemData, SpriteData, TextureData } from './data.js';
 
 const SCREEN_WIDTH = 500;
 const SCREEN_HEIGHT = 500;
 
-export interface SceneDataLayerItem<TSpriteId, TItemType> {
-  spriteId: TSpriteId;
-  type?: TItemType;
-  // (x,y) = position of anchor point (default is top-left corner of sprite)
-  x: number;
-  y: number;
-}
-
-export interface SceneData<TSpriteId, TItemType> {
-  layer0: SceneDataLayerItem<TSpriteId, TItemType>[];
-  layer1: SceneDataLayerItem<TSpriteId, TItemType>[];
-  layer2: SceneDataLayerItem<TSpriteId, TItemType>[];
-  layer3: SceneDataLayerItem<TSpriteId, TItemType>[];
-}
-
-export abstract class EngineApp<TTileId, TSpriteId, TItemType> {
+export abstract class EngineApp {
   private lastTimestamp: number | undefined;
-  private _game!: EngineGame<TTileId>;
+  private _game!: EngineGame;
   private animationRunning = true;
 
   public constructor(
@@ -33,7 +19,7 @@ export abstract class EngineApp<TTileId, TSpriteId, TItemType> {
     private drawContext: DrawContext,
   ) {}
 
-  public get game(): EngineGame<TTileId> {
+  public get game(): EngineGame {
     return this._game;
   }
 
@@ -41,37 +27,30 @@ export abstract class EngineApp<TTileId, TSpriteId, TItemType> {
     return this.animationRunning;
   }
 
-  public async start(
-    tilesData: TextureData<TTileId>[],
-    spritesData: SpriteData<TTileId, TSpriteId>[],
-    sceneData: SceneData<TSpriteId, TItemType>,
-  ): Promise<void> {
+  public async start(tilesData: TextureData[], spritesData: SpriteData[], sceneData: SceneData): Promise<void> {
     this.canvas.width = SCREEN_WIDTH;
     this.canvas.height = SCREEN_HEIGHT;
 
-    const tileManager = new TextureManager<TTileId>();
+    const tileManager = new TextureManager();
     await tileManager.loadTextures(tilesData);
 
     const spriteManager = new SpriteManager(spritesData, tileManager);
 
-    const scene = new Scene<TTileId>(
+    const scene = new Scene(
       sceneData.layer0.map(item => this.createSceneItem(spriteManager, item)),
       sceneData.layer1.map(item => this.createSceneItem(spriteManager, item)),
       sceneData.layer2.map(item => this.createSceneItem(spriteManager, item)),
       sceneData.layer3.map(item => this.createSceneItem(spriteManager, item)),
     );
 
-    this._game = new EngineGame<TTileId>(scene);
+    this._game = new EngineGame(scene);
 
     this.setupControls();
 
     window.requestAnimationFrame(this.gameLoop.bind(this));
   }
 
-  protected abstract createSceneItem(
-    spriteManager: SpriteManager<TTileId, TSpriteId>,
-    dataItem: SceneDataLayerItem<TSpriteId, TItemType>,
-  ): GenericItem<TTileId>;
+  protected abstract createSceneItem(spriteManager: SpriteManager, dataItem: SceneLayerItemData): GenericItem;
 
   // {
   //   const sprite = spriteManager.getSprite(dataItem.spriteId);
@@ -98,9 +77,9 @@ export abstract class EngineApp<TTileId, TSpriteId, TItemType> {
     }
   }
 
-  public goToNextFrame(dt: number): void {
+  public goToNextFrame(delatTime: number): void {
     this.drawBackground();
-    this._game.nextFrame(this.drawContext, dt);
+    this._game.nextFrame(this.drawContext, delatTime);
     this._game.updateControlState({
       action1: false,
       action2: false,
@@ -109,9 +88,9 @@ export abstract class EngineApp<TTileId, TSpriteId, TItemType> {
 
   private gameLoop(timestamp: number): void {
     this.lastTimestamp = this.lastTimestamp ?? timestamp;
-    const dt = timestamp - this.lastTimestamp;
+    const deltaTime = timestamp - this.lastTimestamp;
     this.lastTimestamp = timestamp;
-    this.goToNextFrame(dt);
+    this.goToNextFrame(deltaTime);
     if (this.animationRunning) {
       window.requestAnimationFrame(this.gameLoop.bind(this));
     }

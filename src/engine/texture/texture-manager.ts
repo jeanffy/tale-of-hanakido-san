@@ -1,26 +1,26 @@
-import { TextureData } from './data.js';
+import { TextureData } from '../data.js';
 import { Texture } from './texture.js';
 
-export class TextureManager<TTextureId> {
-  private textures = new Map<TTextureId, Texture<TTextureId>>();
+export class TextureManager {
+  private textures = new Map<string, Texture>();
 
-  public async loadTextures(dataTextures: TextureData<TTextureId>[]): Promise<void> {
-    for (const dataTexture of dataTextures) {
-      const texture = await new Promise<Texture<TTextureId>>((resolve, reject) => {
-        const image = new Image();
+  public async loadTextures(texturesData: TextureData[]): Promise<void> {
+    for (const textureData of texturesData) {
+      const texture = await new Promise<Texture>((resolve, reject) => {
+        let image = new Image();
         image.onload = () => {
-          resolve(new Texture(dataTexture.id, image));
+          resolve(new Texture(textureData.id, image));
         };
         image.onerror = () => {
           reject();
         };
-        image.src = dataTexture.url;
+        image.src = textureData.url;
       });
-      this.textures.set(dataTexture.id, texture);
+      this.textures.set(textureData.id, texture);
     }
   }
 
-  public getTexture(id: TTextureId): Texture<TTextureId> {
+  public getTexture(id: string): Texture {
     const texture = this.textures.get(id);
     if (texture === undefined) {
       throw new Error(`No texture for id '${id}'`);
@@ -28,7 +28,7 @@ export class TextureManager<TTextureId> {
     return texture;
   }
 
-  public scaleSprite(img: HTMLImageElement, scale: number): HTMLImageElement {
+  public scaleImage(img: HTMLImageElement, scale: number): HTMLImageElement {
     if (!Number.isInteger(scale)) {
       console.error(`Invalid scale ${scale}`);
       throw Error();

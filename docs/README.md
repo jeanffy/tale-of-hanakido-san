@@ -1,0 +1,1 @@
+This folder is there only for [github-pages](https://docs.github.com/fr/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)

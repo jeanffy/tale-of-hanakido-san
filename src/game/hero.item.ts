@@ -5,87 +5,129 @@ import { GenericItem, GenericItemInitParams } from '../engine/scene/generic.item
 import { SceneCollider } from '../engine/scene/scene-collider.js';
 import { SpriteHeroState } from './sprites.data.js';
 import { ChestItem } from './chest.item.js';
-import { TextureId } from './textures.data.js';
 import { Direction } from '../engine/direction.js';
 
 const SPEED_WALKING = 0.1;
 const SPEED_RUNNING = 0.2;
 
-export class HeroItem extends GenericItem<TextureId> {
+enum HeroState {
+  Still,
+  UsingSword,
+  Walking,
+}
+
+export class HeroItem extends GenericItem {
   private movingDirectionX: number;
   private movingDirectionY: number;
   private primaryDirection?: Direction;
-  private state: SpriteHeroState;
-  private previousState: SpriteHeroState;
+  private spriteState: SpriteHeroState;
+  private previousSpriteState: SpriteHeroState;
   private speed = SPEED_WALKING;
-  private usingSword: boolean;
 
-  public constructor(params: GenericItemInitParams<TextureId>) {
-    super(params);
-    this.state = SpriteHeroState.StillDown;
-    this.previousState = this.state;
-    this.movingDirectionX = 0;
-    this.movingDirectionY = 0;
-    this.usingSword = false;
+  private get state(): HeroState {
+    switch (this.spriteState) {
+      case SpriteHeroState.StillUp:
+      case SpriteHeroState.StillDown:
+      case SpriteHeroState.StillLeft:
+      case SpriteHeroState.StillRight:
+        return HeroState.Still;
+      case SpriteHeroState.WalkingUp:
+      case SpriteHeroState.WalkingDown:
+      case SpriteHeroState.WalkingLeft:
+      case SpriteHeroState.WalkingRight:
+        return HeroState.Walking;
+      case SpriteHeroState.SwordUp:
+      case SpriteHeroState.SwordDown:
+      case SpriteHeroState.SwordLeft:
+      case SpriteHeroState.SwordRight:
+        return HeroState.UsingSword;
+    }
   }
 
-  public processInputs(controlState: ControlState, collider: SceneCollider<TextureId>): void {
+  public constructor(params: GenericItemInitParams) {
+    super(params);
+    this.spriteState = SpriteHeroState.StillDown;
+
+    this.previousSpriteState = this.spriteState;
+    this.movingDirectionX = 0;
+    this.movingDirectionY = 0;
+  }
+
+  public processInputs(controlState: ControlState, collider: SceneCollider): void {
     super.processInputs(controlState, collider);
 
-    if (this.usingSword) {
+    if (this.state === HeroState.UsingSword) {
       return;
     }
 
-    this.state = SpriteHeroState.StillDown;
-    this.primaryDirection = undefined;
+    const currentState = this.state;
+    let nextSpriteState = SpriteHeroState.StillDown;
+
+    switch (this.primaryDirection) {
+      case Direction.Up:
+        nextSpriteState = SpriteHeroState.StillUp;
+        break;
+      case Direction.Down:
+        nextSpriteState = SpriteHeroState.StillDown;
+        break;
+      case Direction.Left:
+        nextSpriteState = SpriteHeroState.StillLeft;
+        break;
+      case Direction.Right:
+        nextSpriteState = SpriteHeroState.StillRight;
+        break;
+    }
 
     this.movingDirectionX = 0;
     if (controlState.left) {
       this.movingDirectionX = -1;
-      this.state = SpriteHeroState.WalkingLeft;
-      if (this.primaryDirection !== Direction.Up && this.primaryDirection !== Direction.Down) {
+      if (currentState !== HeroState.Walking) {
         this.primaryDirection = Direction.Left;
+        nextSpriteState = SpriteHeroState.WalkingLeft;
       }
     } else if (controlState.right) {
       this.movingDirectionX = 1;
-      this.state = SpriteHeroState.WalkingRight;
-      if (this.primaryDirection !== Direction.Up && this.primaryDirection !== Direction.Down) {
+      if (currentState !== HeroState.Walking) {
         this.primaryDirection = Direction.Right;
+        nextSpriteState = SpriteHeroState.WalkingRight;
       }
     }
 
     this.movingDirectionY = 0;
     if (controlState.up) {
       this.movingDirectionY = -1;
-      this.state = SpriteHeroState.WalkingUp;
-      if (this.primaryDirection !== Direction.Left && this.primaryDirection !== Direction.Right) {
+      if (currentState !== HeroState.Walking) {
         this.primaryDirection = Direction.Up;
+        nextSpriteState = SpriteHeroState.WalkingUp;
       }
     } else if (controlState.down) {
       this.movingDirectionY = 1;
-      this.state = SpriteHeroState.WalkingDown;
-      if (this.primaryDirection !== Direction.Left && this.primaryDirection !== Direction.Right) {
+      if (currentState !== HeroState.Walking) {
         this.primaryDirection = Direction.Down;
+        nextSpriteState = SpriteHeroState.WalkingDown;
       }
     }
 
     if (controlState.action2) {
-      this.previousState = this.state;
+      this.previousSpriteState = nextSpriteState;
       switch (this.primaryDirection) {
         case Direction.Up:
-          this.state = SpriteHeroState.SwordUp;
+          nextSpriteState = SpriteHeroState.SwordUp;
           break;
         case Direction.Down:
-          this.state = SpriteHeroState.SwordDown;
+          nextSpriteState = SpriteHeroState.SwordDown;
           break;
         case Direction.Left:
-          this.state = SpriteHeroState.SwordLeft;
+          nextSpriteState = SpriteHeroState.SwordLeft;
+          break;
+        case Direction.Right:
+          nextSpriteState = SpriteHeroState.SwordRight;
           break;
       }
-      this.usingSword = true;
     }
 
-    this._sprite.selectState(this.state);
+    this.spriteState = nextSpriteState;
+    this._sprite.selectState(this.spriteState);
 
     this.speed = controlState.control ? SPEED_RUNNING : SPEED_WALKING;
 
@@ -98,10 +140,10 @@ export class HeroItem extends GenericItem<TextureId> {
     }
   }
 
-  public update(dt: number, collider: SceneCollider<TextureId>): void {
-    super.update(dt, collider);
+  public update(deltaTime: number, collider: SceneCollider): void {
+    super.update(deltaTime, collider);
 
-    switch (this.state) {
+    switch (this.spriteState) {
       case SpriteHeroState.WalkingUp:
       case SpriteHeroState.WalkingDown:
       case SpriteHeroState.WalkingLeft:
@@ -115,17 +157,16 @@ export class HeroItem extends GenericItem<TextureId> {
         // - release right arrow key
         // - press down arrow key to get pass the object
         // - press right arrow key again
-        this.handleWalk(dt, new GeomVector(this.movingDirectionX, 0), collider);
-        this.handleWalk(dt, new GeomVector(0, this.movingDirectionY), collider);
+        this.handleWalk(deltaTime, new GeomVector(this.movingDirectionX, 0), collider);
+        this.handleWalk(deltaTime, new GeomVector(0, this.movingDirectionY), collider);
         break;
     }
   }
 
   protected spriteAnimationLooped(): void {
-    if (this.usingSword) {
-      this._sprite.selectState(this.previousState);
-      this.state = this.previousState;
-      this.usingSword = false;
+    if (this.state === HeroState.UsingSword) {
+      this._sprite.selectState(this.previousSpriteState);
+      this.spriteState = this.previousSpriteState;
     }
   }
 
@@ -133,8 +174,8 @@ export class HeroItem extends GenericItem<TextureId> {
     super.render(drawContext);
   }
 
-  private handleWalk(dt: number, direction: GeomVector, collider: SceneCollider<TextureId>): void {
-    const moveDirection = direction.scale(this.speed * dt);
+  private handleWalk(deltaTime: number, direction: GeomVector, collider: SceneCollider): void {
+    const moveDirection = direction.scale(this.speed * deltaTime);
     const nextPosition = this._position.moveByVector(moveDirection);
     if (collider.anyItemCollidesWith(this, nextPosition)) {
       return;

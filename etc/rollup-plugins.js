@@ -59,4 +59,7 @@ function finalizeBundleAction() {
     console.log(`${filePath} -> ${outputFilePath}`);
     fs.copyFileSync(filePath, outputFilePath);
   }
+
+  const ghpLink = 'https://docs.github.com/fr/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site';
+  fs.writeFileSync(`${docsDir}/README.md`, `This folder is there only for [github-pages](${ghpLink})`);
 }

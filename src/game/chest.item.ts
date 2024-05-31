@@ -1,12 +1,11 @@
 import { SpriteChestState } from './sprites.data.js';
 import { SceneCollider } from '../engine/scene/scene-collider.js';
 import { GenericItem, GenericItemInitParams } from '../engine/scene/generic.item.js';
-import { TextureId } from './textures.data.js';
 
-export class ChestItem extends GenericItem<TextureId> {
+export class ChestItem extends GenericItem {
   private isOpen = false;
 
-  public constructor(params: GenericItemInitParams<TextureId>) {
+  public constructor(params: GenericItemInitParams) {
     super(params);
     this._sprite.selectState(SpriteChestState.Closed);
   }
@@ -21,8 +20,8 @@ export class ChestItem extends GenericItem<TextureId> {
     }
   }
 
-  public update(dt: number, collider: SceneCollider<TextureId>): void {
-    super.update(dt, collider);
+  public update(deltaTime: number, collider: SceneCollider): void {
+    super.update(deltaTime, collider);
   }
 
   protected spriteAnimationLooped(): void {

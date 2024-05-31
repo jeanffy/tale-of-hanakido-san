@@ -5,11 +5,11 @@ import { ControlState } from './control-state.js';
 
 const TARGET_FPS = 60;
 
-export class EngineGame<TTileId> {
+export class EngineGame {
   private controlState: ControlState;
   private frameRateIterator: FrameRateIterator;
 
-  public constructor(private scene: Scene<TTileId>) {
+  public constructor(private scene: Scene) {
     this.controlState = {
       up: false,
       down: false,
@@ -22,11 +22,11 @@ export class EngineGame<TTileId> {
     this.frameRateIterator = new FrameRateIterator({ targetFps: TARGET_FPS });
   }
 
-  public nextFrame(drawContext: DrawContext, dt: number): void {
-    this.scene.processInputs(dt, this.controlState);
-    this.scene.update(dt);
+  public nextFrame(drawContext: DrawContext, deltaTime: number): void {
+    this.scene.processInputs(deltaTime, this.controlState);
+    this.scene.update(deltaTime);
 
-    this.frameRateIterator.shouldRender(dt).then(shouldRender => {
+    this.frameRateIterator.shouldRender(deltaTime).then(shouldRender => {
       if (shouldRender) {
         this.render(drawContext);
       }

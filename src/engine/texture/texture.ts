@@ -1,12 +1,12 @@
-import { DrawContext } from './draw-context.js';
-import { GeomRect } from './geom/geom-rect.js';
-import { GeomPoint } from './geom/geom-point.js';
+import { DrawContext } from '../draw-context.js';
+import { GeomRect } from '../geom/geom-rect.js';
+import { GeomPoint } from '../geom/geom-point.js';
 
-export class Texture<TTextureId> {
+export class Texture {
   public imageBBox: GeomRect;
 
   public constructor(
-    public id: TTextureId,
+    public id: string,
     private image: HTMLImageElement,
   ) {
     this.imageBBox = new GeomRect(0, 0, image.width, image.height);
