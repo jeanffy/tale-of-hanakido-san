@@ -1,53 +1,27 @@
 import { GeomVector } from '../engine/geom/geom-vector.js';
-import { ControlState } from '../engine/control-state.js';
+import { ControlState, ControlStateDef } from '../engine/control-state.js';
 import { DrawContext } from '../engine/draw-context.js';
 import { GenericItem, GenericItemInitParams } from '../engine/scene/generic.item.js';
 import { SceneCollider } from '../engine/scene/scene-collider.js';
 import { SpriteHeroState } from './sprites.data.js';
-import { ChestItem } from './chest.item.js';
 import { Direction } from '../engine/direction.js';
+import { ChestItem } from './chest.item.js';
 
 const SPEED_WALKING = 0.1;
 const SPEED_RUNNING = 0.2;
 
-enum HeroState {
-  Still,
-  UsingSword,
-  Walking,
-}
-
 export class HeroItem extends GenericItem {
   private movingDirectionX: number;
   private movingDirectionY: number;
-  private primaryDirection?: Direction;
   private spriteState: SpriteHeroState;
   private previousSpriteState: SpriteHeroState;
   private speed = SPEED_WALKING;
-
-  private get state(): HeroState {
-    switch (this.spriteState) {
-      case SpriteHeroState.StillUp:
-      case SpriteHeroState.StillDown:
-      case SpriteHeroState.StillLeft:
-      case SpriteHeroState.StillRight:
-        return HeroState.Still;
-      case SpriteHeroState.WalkingUp:
-      case SpriteHeroState.WalkingDown:
-      case SpriteHeroState.WalkingLeft:
-      case SpriteHeroState.WalkingRight:
-        return HeroState.Walking;
-      case SpriteHeroState.SwordUp:
-      case SpriteHeroState.SwordDown:
-      case SpriteHeroState.SwordLeft:
-      case SpriteHeroState.SwordRight:
-        return HeroState.UsingSword;
-    }
-  }
+  private isWalking = false;
+  private isUsingSword = false;
 
   public constructor(params: GenericItemInitParams) {
     super(params);
     this.spriteState = SpriteHeroState.StillDown;
-
     this.previousSpriteState = this.spriteState;
     this.movingDirectionX = 0;
     this.movingDirectionY = 0;
@@ -56,79 +30,81 @@ export class HeroItem extends GenericItem {
   public processInputs(controlState: ControlState, collider: SceneCollider): void {
     super.processInputs(controlState, collider);
 
-    if (this.state === HeroState.UsingSword) {
+    if (this.isUsingSword) {
       return;
     }
 
-    const currentState = this.state;
-    let nextSpriteState = SpriteHeroState.StillDown;
-
-    switch (this.primaryDirection) {
-      case Direction.Up:
-        nextSpriteState = SpriteHeroState.StillUp;
-        break;
-      case Direction.Down:
-        nextSpriteState = SpriteHeroState.StillDown;
-        break;
-      case Direction.Left:
-        nextSpriteState = SpriteHeroState.StillLeft;
-        break;
-      case Direction.Right:
-        nextSpriteState = SpriteHeroState.StillRight;
-        break;
-    }
-
     this.movingDirectionX = 0;
-    if (controlState.left) {
-      this.movingDirectionX = -1;
-      if (currentState !== HeroState.Walking) {
-        this.primaryDirection = Direction.Left;
-        nextSpriteState = SpriteHeroState.WalkingLeft;
-      }
-    } else if (controlState.right) {
-      this.movingDirectionX = 1;
-      if (currentState !== HeroState.Walking) {
-        this.primaryDirection = Direction.Right;
-        nextSpriteState = SpriteHeroState.WalkingRight;
-      }
-    }
-
     this.movingDirectionY = 0;
-    if (controlState.up) {
-      this.movingDirectionY = -1;
-      if (currentState !== HeroState.Walking) {
-        this.primaryDirection = Direction.Up;
-        nextSpriteState = SpriteHeroState.WalkingUp;
+    let primaryDirection = Direction.Down;
+
+    if (controlState.sequence.length > 0) {
+      this.isWalking = true;
+      for (const cs of controlState.sequence) {
+        switch (cs) {
+          case ControlStateDef.Up:
+            this.movingDirectionY = -1;
+            this.spriteState = SpriteHeroState.WalkingUp;
+            primaryDirection = Direction.Up;
+            break;
+          case ControlStateDef.Down:
+            this.movingDirectionY = 1;
+            this.spriteState = SpriteHeroState.WalkingDown;
+            primaryDirection = Direction.Down;
+            break;
+          case ControlStateDef.Left:
+            this.movingDirectionX = -1;
+            this.spriteState = SpriteHeroState.WalkingLeft;
+            primaryDirection = Direction.Left;
+            break;
+          case ControlStateDef.Right:
+            this.movingDirectionX = 1;
+            this.spriteState = SpriteHeroState.WalkingRight;
+            primaryDirection = Direction.Right;
+            break;
+        }
       }
-    } else if (controlState.down) {
-      this.movingDirectionY = 1;
-      if (currentState !== HeroState.Walking) {
-        this.primaryDirection = Direction.Down;
-        nextSpriteState = SpriteHeroState.WalkingDown;
+    } else if (this.isWalking) {
+      this.isWalking = false;
+      switch (this.spriteState) {
+        case SpriteHeroState.WalkingUp:
+          this.spriteState = SpriteHeroState.StillUp;
+          primaryDirection = Direction.Up;
+          break;
+        case SpriteHeroState.WalkingDown:
+          this.spriteState = SpriteHeroState.StillDown;
+          primaryDirection = Direction.Down;
+          break;
+        case SpriteHeroState.WalkingLeft:
+          this.spriteState = SpriteHeroState.StillLeft;
+          primaryDirection = Direction.Left;
+          break;
+        case SpriteHeroState.WalkingRight:
+          this.spriteState = SpriteHeroState.StillRight;
+          primaryDirection = Direction.Right;
+          break;
       }
     }
 
     if (controlState.action2) {
-      this.previousSpriteState = nextSpriteState;
-      switch (this.primaryDirection) {
+      this.isUsingSword = true;
+      switch (primaryDirection) {
         case Direction.Up:
-          nextSpriteState = SpriteHeroState.SwordUp;
+          this.spriteState = SpriteHeroState.SwordUp;
           break;
         case Direction.Down:
-          nextSpriteState = SpriteHeroState.SwordDown;
+          this.spriteState = SpriteHeroState.SwordDown;
           break;
         case Direction.Left:
-          nextSpriteState = SpriteHeroState.SwordLeft;
+          this.spriteState = SpriteHeroState.SwordLeft;
           break;
         case Direction.Right:
-          nextSpriteState = SpriteHeroState.SwordRight;
+          this.spriteState = SpriteHeroState.SwordRight;
           break;
       }
     }
 
-    this.spriteState = nextSpriteState;
     this._sprite.selectState(this.spriteState);
-
     this.speed = controlState.control ? SPEED_RUNNING : SPEED_WALKING;
 
     if (controlState.action1) {
@@ -157,14 +133,16 @@ export class HeroItem extends GenericItem {
         // - release right arrow key
         // - press down arrow key to get pass the object
         // - press right arrow key again
-        this.handleWalk(deltaTime, new GeomVector(this.movingDirectionX, 0), collider);
-        this.handleWalk(deltaTime, new GeomVector(0, this.movingDirectionY), collider);
+        const movingDirection = new GeomVector(this.movingDirectionX, this.movingDirectionY).normalize();
+        this.handleWalk(deltaTime, new GeomVector(movingDirection.x, 0), collider);
+        this.handleWalk(deltaTime, new GeomVector(0, movingDirection.y), collider);
         break;
     }
   }
 
   protected spriteAnimationLooped(): void {
-    if (this.state === HeroState.UsingSword) {
+    if (this.isUsingSword) {
+      this.isUsingSword = false;
       this._sprite.selectState(this.previousSpriteState);
       this.spriteState = this.previousSpriteState;
     }

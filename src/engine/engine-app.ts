@@ -5,6 +5,7 @@ import { Scene } from './scene/scene.js';
 import { SpriteManager } from './sprite/sprite-manager.js';
 import { GenericItem } from './scene/generic.item.js';
 import { SceneData, SceneLayerItemData, SpriteData, TextureData } from './data.js';
+import { ControlStateEvent } from './control-state.js';
 
 const SCREEN_WIDTH = 500;
 const SCREEN_HEIGHT = 500;
@@ -80,10 +81,6 @@ export abstract class EngineApp {
   public goToNextFrame(delatTime: number): void {
     this.drawBackground();
     this._game.nextFrame(this.drawContext, delatTime);
-    this._game.updateControlState({
-      action1: false,
-      action2: false,
-    });
   }
 
   private gameLoop(timestamp: number): void {
@@ -117,23 +114,32 @@ export abstract class EngineApp {
     window.addEventListener('keydown', (event: KeyboardEvent): void => {
       switch (event.code.toLowerCase()) {
         case 'arrowup':
-          this.game.updateControlState({ up: true });
+          this.game.updateControlState(ControlStateEvent.UpPressed);
           event.preventDefault();
           break;
         case 'arrowdown':
-          this.game.updateControlState({ down: true });
+          this.game.updateControlState(ControlStateEvent.DownPressed);
           event.preventDefault();
           break;
         case 'arrowleft':
-          this.game.updateControlState({ left: true });
+          this.game.updateControlState(ControlStateEvent.LeftPressed);
           event.preventDefault();
           break;
         case 'arrowright':
-          this.game.updateControlState({ right: true });
+          this.game.updateControlState(ControlStateEvent.RightPressed);
           event.preventDefault();
           break;
         case 'keyz':
-          this.game.updateControlState({ control: true });
+          this.game.updateControlState(ControlStateEvent.ControlPressed);
+          event.preventDefault();
+          break;
+        case 'keyx':
+          console.log('pre');
+          this.game.updateControlState(ControlStateEvent.Action1Pressed);
+          event.preventDefault();
+          break;
+        case 'keyc':
+          this.game.updateControlState(ControlStateEvent.Action2Pressed);
           event.preventDefault();
           break;
       }
@@ -142,31 +148,32 @@ export abstract class EngineApp {
     window.addEventListener('keyup', (event: KeyboardEvent): void => {
       switch (event.code.toLowerCase()) {
         case 'arrowup':
-          this.game.updateControlState({ up: false });
+          this.game.updateControlState(ControlStateEvent.UpReleased);
           event.preventDefault();
           break;
         case 'arrowdown':
-          this.game.updateControlState({ down: false });
+          this.game.updateControlState(ControlStateEvent.DownReleased);
           event.preventDefault();
           break;
         case 'arrowleft':
-          this.game.updateControlState({ left: false });
+          this.game.updateControlState(ControlStateEvent.LeftReleased);
           event.preventDefault();
           break;
         case 'arrowright':
-          this.game.updateControlState({ right: false });
+          this.game.updateControlState(ControlStateEvent.RightReleased);
           event.preventDefault();
           break;
         case 'keyz':
-          this.game.updateControlState({ control: false });
+          this.game.updateControlState(ControlStateEvent.ControlReleased);
           event.preventDefault();
           break;
         case 'keyx':
-          this.game.updateControlState({ action1: true });
+          console.log('rel');
+          this.game.updateControlState(ControlStateEvent.Action1Released);
           event.preventDefault();
           break;
         case 'keyc':
-          this.game.updateControlState({ action2: true });
+          this.game.updateControlState(ControlStateEvent.Action2Released);
           event.preventDefault();
           break;
       }

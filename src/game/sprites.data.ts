@@ -102,6 +102,46 @@ export const spritesData: SpriteData[] = [
           { bbox: [150, 114, 188, 179] },
         ],
       },
+      {
+        label: SpriteHeroState.SwordUp,
+        textureId: TextureId.Character,
+        frames: [
+          { bbox: [24, 498, 74, 563] },
+          { bbox: [120, 498, 170, 563] },
+          { bbox: [216, 498, 260, 563] },
+          { bbox: [312, 498, 356, 563] },
+        ],
+      },
+      {
+        label: SpriteHeroState.SwordDown,
+        textureId: TextureId.Character,
+        frames: [
+          { bbox: [21, 402, 68, 476] },
+          { bbox: [120, 402, 167, 476] },
+          { bbox: [216, 402, 263, 476] },
+          { bbox: [312, 402, 359, 476] },
+        ],
+      },
+      {
+        label: SpriteHeroState.SwordLeft,
+        textureId: TextureId.Character,
+        frames: [
+          { bbox: [27, 690, 65, 755] },
+          { bbox: [99, 690, 158, 755] },
+          { bbox: [204, 690, 257, 755] },
+          { bbox: [303, 690, 356, 755] },
+        ],
+      },
+      {
+        label: SpriteHeroState.SwordRight,
+        textureId: TextureId.Character,
+        frames: [
+          { bbox: [27, 594, 74, 659] },
+          { bbox: [123, 594, 182, 659] },
+          { bbox: [219, 594, 263, 659] },
+          { bbox: [315, 594, 359, 659] },
+        ],
+      },
     ],
     hitBox: [3, 32, 38, 59],
   },

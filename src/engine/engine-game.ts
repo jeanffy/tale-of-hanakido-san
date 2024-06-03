@@ -1,7 +1,7 @@
 import { DrawContext } from './draw-context.js';
 import { FrameRateIterator } from './utils/frame-rate-iterator.js';
 import { Scene } from './scene/scene.js';
-import { ControlState } from './control-state.js';
+import { ControlState, ControlStateEvent } from './control-state.js';
 
 const TARGET_FPS = 60;
 
@@ -10,15 +10,7 @@ export class EngineGame {
   private frameRateIterator: FrameRateIterator;
 
   public constructor(private scene: Scene) {
-    this.controlState = {
-      up: false,
-      down: false,
-      left: false,
-      right: false,
-      control: false,
-      action1: false,
-      action2: false,
-    };
+    this.controlState = new ControlState();
     this.frameRateIterator = new FrameRateIterator({ targetFps: TARGET_FPS });
   }
 
@@ -33,14 +25,8 @@ export class EngineGame {
     });
   }
 
-  public updateControlState(state: Partial<ControlState>): void {
-    this.controlState.up = state.up ?? this.controlState.up;
-    this.controlState.down = state.down ?? this.controlState.down;
-    this.controlState.left = state.left ?? this.controlState.left;
-    this.controlState.right = state.right ?? this.controlState.right;
-    this.controlState.control = state.control ?? this.controlState.control;
-    this.controlState.action1 = state.action1 ?? this.controlState.action1;
-    this.controlState.action2 = state.action2 ?? this.controlState.action2;
+  public updateControlState(def: ControlStateEvent): void {
+    this.controlState.update(def);
   }
 
   private render(drawContext: DrawContext): void {
@@ -48,6 +34,8 @@ export class EngineGame {
       this.scene.render(drawContext);
       const fpsString = `FPS: ${this.frameRateIterator.fps}`;
       drawContext.writeText(fpsString, 5, 5, { horizontalAlign: 'left', verticalAlign: 'top' });
+      const csString = `[${this.controlState.sequence.join(',')}]`;
+      drawContext.writeText(csString, 10, 20, { horizontalAlign: 'left', verticalAlign: 'top' });
     } catch (error) {
       console.error(error);
     }
